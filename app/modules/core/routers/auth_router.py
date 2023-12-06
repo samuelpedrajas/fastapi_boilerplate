@@ -51,7 +51,7 @@ async def register(
         )
 
         # Assign default role
-        default_role = db.query(Role).filter_by(role_name='user').first()
+        default_role = db.query(Role).filter_by(name='user').first()
         if default_role:
             new_user.roles.append(default_role)
 

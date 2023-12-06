@@ -24,12 +24,12 @@ def upgrade():
 
     # Insert roles
     role_ids = insert_data_with_alembic(connection,
-        [{'role_name': 'user'}, {'role_name': 'admin'}],
+        [{'name': 'user'}, {'name': 'admin'}],
         table_name='roles')
 
     # Insert permissions
     permission_ids = insert_data_with_alembic(connection,
-        [{'permission_name': 'base'}, {'permission_name': 'admin'}],
+        [{'name': 'base'}, {'name': 'admin'}],
         table_name='permissions')
 
     # Insert roles_permissions

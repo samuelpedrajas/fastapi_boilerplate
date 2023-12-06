@@ -69,7 +69,7 @@ class TestAuthViews(TestCase):
             self.assertEqual(user.photo_path, os.path.join(self.app.config['UPLOAD_FOLDER'], 'test_image.png'))
             self.assertFalse(user.active)
             self.assertEqual(len(user.roles), 1)
-            self.assertEqual(user.roles[0].role_name, 'user')
+            self.assertEqual(user.roles[0].name, 'user')
 
             # check the email
             send_email_mock.assert_called_once()

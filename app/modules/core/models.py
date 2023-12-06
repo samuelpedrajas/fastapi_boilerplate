@@ -11,8 +11,8 @@ class Country(Base):
     __tablename__ = 'countries'
 
     id = Column(Integer, primary_key=True)
-    country_code = Column(String(255), nullable=False)
-    country = Column(String(255), nullable=False)
+    code = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -48,7 +48,7 @@ class Role(Base):
     __tablename__ = 'roles'
 
     id = Column(Integer, primary_key=True)
-    role_name = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -65,7 +65,7 @@ class Permission(Base):
     __tablename__ = 'permissions'
 
     id = Column(Integer, primary_key=True)
-    permission_name = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

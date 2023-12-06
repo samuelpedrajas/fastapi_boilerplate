@@ -5,6 +5,7 @@ from app.modules.core.models import User, Country
 from fastapi import Form
 
 class RegistrationForm(BaseModel):
+    
     username: constr(min_length=2, max_length=50) = Form()
     password: constr(min_length=8, max_length=50) = Form()
     password_confirmation: constr(min_length=8, max_length=50) = Form()
