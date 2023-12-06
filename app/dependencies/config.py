@@ -1,0 +1,58 @@
+import os
+from pydantic_settings import BaseSettings
+
+class CommonSettings(BaseSettings):
+    SERVER_NAME: str
+    SECRET_KEY: str
+    FASTAPI_RUN_PORT: int
+    FASTAPI_ENV: str
+
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+
+    MAIL_SERVER: str
+    MAIL_PORT: int
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_USE_TLS: bool
+    MAIL_USE_SSL: bool
+    MAIL_DEFAULT_SENDER: str
+
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@db/{self.POSTGRES_DB}"
+
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
+class DevelopmentConfig(CommonSettings):
+    DEBUG: bool = True
+    # Development specific configurations
+
+class ProductionConfig(CommonSettings):
+    DEBUG: bool = False
+    # Production specific configurations
+
+class TestingConfig(CommonSettings):
+    TESTING: bool = True
+    DEBUG: bool = True
+
+    POSTGRES_TEST_USER: str
+    POSTGRES_TEST_PASSWORD: str
+    POSTGRES_TEST_DB: str
+
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        return f"postgresql://{self.POSTGRES_TEST_USER}:{self.POSTGRES_TEST_PASSWORD}@db/{self.POSTGRES_TEST_DB}"
+
+def get_settings() -> BaseSettings:
+    env = os.environ.get("FASTAPI_ENV", "development")
+    if env == "production":
+        return ProductionConfig()
+    elif env == "testing":
+        return TestingConfig()
+    return DevelopmentConfig()
+
+settings = get_settings()
