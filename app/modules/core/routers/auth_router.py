@@ -1,27 +1,30 @@
-import os
-import shutil
-from werkzeug.utils import secure_filename
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.security import generate_password_hash
-from fastapi import Request, Response
 from fastapi.templating import Jinja2Templates
-from app.modules.core.models import User, Role
-from app.modules.core.schema import RegistrationForm
+from app.modules.core.schemas.user_schemas import UserCreate
+from app.modules.core.services.auth_service import AuthService, get_auth_service
 from app.helpers.email_service import send_email
-from app.modules.core.models import EmailTemplate
 from app.helpers.encryption import Encryption
-from app.dependencies.db import get_db  # Assuming you have a dependency to get the DB session
+from app.common.response import standard_response
+
 
 router = APIRouter()
 
 @router.post("/register/")
 async def register(
-    form_data: RegistrationForm,
+    user_data: UserCreate,
     # photo: UploadFile | None = None,
-    db: Session = Depends(get_db)
+    auth_service: AuthService = Depends(get_auth_service)
 ):
+    try:
+        user = auth_service.register(user_data)
+        user_response = auth_service.user_service.get_user_response_from_user(user)
+        return standard_response(200, "Registration successful", user_response)
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
     # Validate form data
     # FastAPI uses Pydantic models for request validation, 
     # so you might not need the same validation check as in Flask
@@ -33,42 +36,6 @@ async def register(
     #     filepath = os.path.join("storage/uploads", filename)
     #     with open(filepath, "wb") as buffer:
     #         shutil.copyfileobj(photo.file, buffer)
-
-    try:
-        # Start DB transaction
-        transaction = db.begin_nested()
-
-        # Create user instance
-        new_user = User(
-            username=form_data.username,
-            password_hash=generate_password_hash(form_data.password),
-            name=form_data.name,
-            surname=form_data.surname,
-            email=form_data.email,
-            country_id=form_data.country_id,
-            photo_path=filepath,
-            active=False
-        )
-
-        # Assign default role
-        default_role = db.query(Role).filter_by(name='user').first()
-        if default_role:
-            new_user.roles.append(default_role)
-
-        db.add(new_user)
-        db.commit()
-
-        # Send confirmation email
-        email_template = db.query(EmailTemplate).filter_by(name='account_confirmation').first()
-        if email_template:
-            email_content = email_template.render(new_user)
-            send_email(new_user.email, email_template.subject, email_content)
-
-        return {"status": 200, "message": "Registration successful", "user_id": new_user.id}
-
-    except SQLAlchemyError as e:
-        transaction.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 # Assuming you have a Jinja2Templates instance set up for rendering HTML templates

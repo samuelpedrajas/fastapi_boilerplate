@@ -4,3 +4,4 @@
 *.pyo
 *.log
 tests/storage/uploads/*
+.vscode

@@ -1,5 +1,5 @@
 from flask import current_app, jsonify
-from .response import standard_response
+from ..common.response import standard_response
 
 def handle_500_error(e):
     # Log the error and return a JSON response

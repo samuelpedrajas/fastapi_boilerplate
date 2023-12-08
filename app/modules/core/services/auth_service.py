@@ -1,20 +1,27 @@
-class AuthService:
-    def __init__(self, user_repo: UserRepository, token_service: TokenService):
-        self.user_repo = user_repo
-        self.token_service = token_service
+from fastapi import Depends
+from sqlmodel import Session
+from app.modules.core.models.user import User
+from app.modules.core.schemas.user_schemas import UserCreate
+from app.modules.core.services.user_service import UserService, get_user_service
+from app.common.db import get_db
 
-    async def authenticate(self, email: str, password: str) -> User:
-        user = await self.user_repo.get_by_email(email=email)
-        if not user:
-            raise UserNotFoundException
-        if not user.check_password(password):
-            raise InvalidPasswordException
+
+class AuthService:
+    def __init__(self, db: Session, user_service: UserService):
+        self.db = db
+        self.user_service = user_service
+
+    def register(self, user_data: UserCreate) -> User:
+        user = self.user_service.create_user(user_data, "user", False)
+
+        # Send confirmation email
+        email_template = db.query(EmailTemplate).filter_by(name='account_confirmation').first()
+        if email_template:
+            email_content = email_template.render(user)
+            send_email(user.email, email_template.subject, email_content)
+
         return user
 
-    async def login(self, email: str, password: str) -> Token:
-        user = await self.authenticate(email=email, password=password)
-        return await self.token_service.create_access_token_for_user(user=user)
 
-    async def register(self, email: str, password: str) -> Token:
-        user = await self.user_repo.create_user(email=email, password=password)
-        return await self.token_service.create_access_token_for_user(user=user)
+def get_auth_service(db: Session = Depends(get_db)) -> UserService:
+    return AuthService(db, get_user_service(db))

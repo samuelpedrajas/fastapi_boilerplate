@@ -8,6 +8,8 @@ authors = ["Samuel Pedrajas <samuelpedrajaspz@gmail.com>"]
 python = "^3.10"
 uvicorn = "^0.24.0"
 fastapi = "^0.104.1"
+sqlmodel = "^0.0.14"
+passlib = "^1.7.4"
 
 [tool.poetry.dev-dependencies]
 
