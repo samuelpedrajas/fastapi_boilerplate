@@ -1,9 +1,12 @@
 from datetime import datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field
+from app.common.db import metadata
 
 
-class Permission(SQLModel, table=True):
+class Permission(SQLModel, table=True, target_metadata=metadata):
+    __tablename__ = "permissions"
+
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     created_at: datetime = Field(default_factory=datetime.utcnow)

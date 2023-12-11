@@ -1,12 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from werkzeug.security import generate_password_hash
 from fastapi.templating import Jinja2Templates
 from app.modules.core.schemas.user_schemas import UserCreate
 from app.modules.core.services.auth_service import AuthService, get_auth_service
-from app.helpers.email_service import send_email
-from app.helpers.encryption import Encryption
+from app.helpers.encryption import decrypt
 from app.common.response import standard_response
 
 
@@ -42,13 +40,12 @@ async def register(
 templates = Jinja2Templates(directory="app/modules/core/templates")
 
 @router.get("/confirm/")
-async def confirm(token: str, request: Request, db: Session = Depends(get_db)):
+async def confirm(token: str, request: Request, db: Session = Depends(get_auth_service)):
     if not token:
         return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "No token provided."}, status_code=400)
 
     try:
-        encryption = Encryption("your-secret-key")  # Replace with actual secret key or config
-        user_id = int(encryption.decrypt(token))
+        user_id = int(decrypt(token))
         user = db.query(User).get(user_id)
 
         if not user or user.active:

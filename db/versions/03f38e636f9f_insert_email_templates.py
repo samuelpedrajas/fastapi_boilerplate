@@ -6,7 +6,6 @@ Create Date: 2023-11-23 11:07:18.487387
 
 """
 from alembic import op
-import sqlalchemy as sa
 from db.utils import insert_data_with_alembic
 
 
@@ -33,7 +32,7 @@ def upgrade():
             'html_body': '<p>Hi @@name@@,</p><p>Click <a href="@@reset_password_url@@">here</a> to reset your password.</p>',
         }
     ]
-    insert_data_with_alembic(connection, email_templates, 'email_templates')
+    templates = insert_data_with_alembic(connection, email_templates, 'email_templates')
 
     # Insert email variables
     email_variables = [
@@ -42,7 +41,16 @@ def upgrade():
         {'variable': 'confirmation_url', 'description': 'The URL to confirm the user email address'},
         {'variable': 'reset_password_url', 'description': 'The URL to reset the user password'},
     ]
-    insert_data_with_alembic(connection, email_variables, 'email_variables')
+    variables = insert_data_with_alembic(connection, email_variables, 'email_variables')
+
+    insert_data_with_alembic(connection, [
+        {'email_template_id': templates[0], 'email_variable_id': variables[0]},
+        {'email_template_id': templates[0], 'email_variable_id': variables[1]},
+        {'email_template_id': templates[0], 'email_variable_id': variables[2]},
+        {'email_template_id': templates[1], 'email_variable_id': variables[0]},
+        {'email_template_id': templates[1], 'email_variable_id': variables[1]},
+        {'email_template_id': templates[1], 'email_variable_id': variables[3]},
+    ], table_name='email_templates_email_variables')
 
 
 def downgrade():

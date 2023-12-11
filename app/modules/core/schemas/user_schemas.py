@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, constr
 from fastapi import Form
-from country_schemas import CountryResponse
+from .country_schemas import CountryResponse
 
 
 class UserCreate(BaseModel):

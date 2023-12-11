@@ -30,6 +30,8 @@ RUN poetry config virtualenvs.create false
 # Install the required packages
 RUN poetry install --no-interaction --no-ansi
 
+RUN chown -R ${UID}:${GID} /home/dynamicuser
+
 # Make port 8000 available to the world outside this container
 EXPOSE 8000
 

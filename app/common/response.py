@@ -1,12 +1,15 @@
-from flask import jsonify
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Optional, Any
+
+app = FastAPI()
+
+
+class StandardResponse(BaseModel):
+    status: int
+    message: str
+    result: Optional[Any] = None
+
 
 def standard_response(status, message, result=None):
-    res = {
-        "status": status,
-        "message": message,
-    }
-
-    if result:
-        res["result"] = result
-
-    return jsonify(res), status
+    return StandardResponse(status=status, message=message, result=result)

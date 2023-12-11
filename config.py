@@ -17,7 +17,7 @@ class CommonSettings(BaseSettings):
     MAIL_PASSWORD: str
     MAIL_USE_TLS: bool
     MAIL_USE_SSL: bool
-    MAIL_DEFAULT_SENDER: str
+    MAIL_FROM_EMAIL: str
 
     @property
     def sqlalchemy_database_url(self) -> str:

@@ -6,13 +6,12 @@ Create Date: 2023-11-22 13:20:33.831363
 
 """
 from alembic import op
-import sqlalchemy as sa
 from db.utils import import_from_csv, insert_data_with_alembic
 
 
 # revision identifiers, used by Alembic.
 revision = '34a1b0300fe2'
-down_revision = '7981ae0fe913'
+down_revision = '077a1b7fc10b'
 branch_labels = None
 depends_on = None
 
