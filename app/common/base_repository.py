@@ -1,5 +1,5 @@
 from typing import Type, TypeVar, Generic, List
-from sqlmodel import SQLModel, Session
+from sqlmodel import SQLModel, Session, select
 
 T = TypeVar('T', bound=SQLModel)
 
@@ -9,17 +9,22 @@ class BaseRepository(Generic[T]):
         self.model = model
 
     def get_all(self) -> List[T]:
-        return self.db.exec(self.model).all()
+        statement = select(self.model)
+        results = self.db.exec(statement)
+        return results.all()
 
     def get_by_id(self, id: int) -> T:
-        return self.db.exec(self.model).filter(self.model.id == id).first()
+        statement = select(self.model).where(self.model.id == id)
+        results = self.db.exec(statement)
+        return results.first()
 
     def delete_by_id(self, id: int) -> None:
-        self.db.exec(self.model).filter(self.model.id == id).delete()
+        statement = select(self.model).where(self.model.id == id)
+        self.db.delete(statement.first())
         self.db.commit()
 
-    def create(self, object: Type[T]) -> Type[T]:
+    def create(self, object: T) -> T:
         self.db.add(object)
         self.db.commit()
-
+        self.db.refresh(object)
         return object

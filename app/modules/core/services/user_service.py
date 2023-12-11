@@ -18,7 +18,7 @@ class UserService:
 
     def create_user(self, user_data: UserCreate, role_name: str = "user", active: bool = False) -> User:
         try:
-            transaction = db.begin_nested()
+            transaction = self.db.begin_nested()
             pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
             new_user = User(
                 username=user_data.username,
@@ -42,7 +42,9 @@ class UserService:
             raise e
 
     def get_user_response_from_user(self, user: User) -> UserResponse:
-        return UserResponse.model_validate(user)
+        user_data = user.model_dump()
+        user_data["country"] = user.country.model_dump()
+        return UserResponse.model_validate(user_data)
 
 
 def get_user_service(db: Session = Depends(get_db)) -> UserService:

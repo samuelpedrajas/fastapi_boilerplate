@@ -1,6 +1,6 @@
 from app.common.base_repository import BaseRepository
 from sqlmodel import Session
-from app.modules.core.models.country import Country
+from app.modules.core.models.user import Country
 
 class CountryRepository(BaseRepository):
     def __init__(self, db: Session):

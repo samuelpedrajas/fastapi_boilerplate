@@ -1,9 +1,8 @@
 from fastapi import Depends
 from sqlmodel import Session
-from app.modules.core.models.role import Role
 from app.modules.core.repositories.role_repository import RoleRepository
 from app.common.db import get_db
-from app.modules.core.models.role import Role
+from app.modules.core.models.user import Role
 
 
 class RoleService:

@@ -12,16 +12,18 @@ router = APIRouter()
 
 @router.post("/register/")
 async def register(
+    request: Request,
     user_data: UserCreate,
     # photo: UploadFile | None = None,
     auth_service: AuthService = Depends(get_auth_service)
 ):
     try:
-        user = auth_service.register(user_data)
+        confirmation_url = str(request.url_for("auth.confirm"))
+        user = await auth_service.register(user_data, confirmation_url)
         user_response = auth_service.user_service.get_user_response_from_user(user)
         return standard_response(200, "Registration successful", user_response)
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise e
     
     # Validate form data
     # FastAPI uses Pydantic models for request validation, 
@@ -39,20 +41,20 @@ async def register(
 # Assuming you have a Jinja2Templates instance set up for rendering HTML templates
 templates = Jinja2Templates(directory="app/modules/core/templates")
 
-@router.get("/confirm/")
+@router.get("/confirm/", name="auth.confirm")
 async def confirm(token: str, request: Request, db: Session = Depends(get_auth_service)):
     if not token:
         return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "No token provided."}, status_code=400)
 
     try:
-        user_id = int(decrypt(token))
-        user = db.query(User).get(user_id)
+        # user_id = int(decrypt(token))
+        # user = db.query(User).get(user_id)
 
-        if not user or user.active:
-            return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "Invalid or expired token."}, status_code=400)
+        # if not user or user.active:
+        #     return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "Invalid or expired token."}, status_code=400)
 
-        user.active = True
-        db.commit()
+        # user.active = True
+        # db.commit()
 
         return templates.TemplateResponse("confirmation_success.html", {"request": request})
         

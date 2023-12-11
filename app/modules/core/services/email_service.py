@@ -11,17 +11,15 @@ class EmailService:
         self.from_email = from_email
 
     async def send_email(self, to_email: str, subject: str, body: str):
-        message = EmailMessage(
-            subject=subject,
-            body=body,
-            from_email=self.from_email,
-            to=[to_email]
-        )
+        message = EmailMessage()
+        message.set_content(body)
+        message['Subject'] = subject
+        message['From'] = self.from_email
+        message['To'] = to_email
 
         async with SMTP(hostname=self.smtp_server, port=self.port) as smtp:
             await smtp.login(self.username, self.password)
             await smtp.send_message(message)
-
 
 def get_email_service():
     return EmailService(settings.MAIL_SERVER, settings.MAIL_USERNAME, settings.MAIL_PASSWORD,
