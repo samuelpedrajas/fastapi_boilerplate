@@ -11,5 +11,5 @@ async def validation_exception_handler(request, exc: RequestValidationError):
             status=422,
             message="Validation Error",
             result={"detail": exc.errors()}
-        ).dict()
+        ).model_dump()
     )
