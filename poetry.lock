@@ -1,4 +1,12 @@
 [[package]]
+name = "aiofiles"
+version = "23.2.1"
+description = "File support for asyncio."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[[package]]
 name = "aiosmtplib"
 version = "3.0.1"
 description = "asyncio SMTP client"
@@ -112,7 +120,7 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "fastapi"
-version = "0.104.1"
+version = "0.105.0"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 category = "main"
 optional = false
@@ -275,6 +283,17 @@ python-versions = ">=3.8"
 cli = ["click (>=5.0)"]
 
 [[package]]
+name = "python-multipart"
+version = "0.0.6"
+description = "A streaming multipart parser for Python"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+dev = ["atomicwrites (==1.2.1)", "attrs (==19.2.0)", "coverage (==6.5.0)", "hatch", "invoke (==1.7.3)", "more-itertools (==4.3.0)", "pbr (==4.3.0)", "pluggy (==1.0.0)", "py (==1.11.0)", "pytest-cov (==4.0.0)", "pytest-timeout (==2.1.0)", "pytest (==7.2.0)", "pyyaml (==5.1)"]
+
+[[package]]
 name = "sniffio"
 version = "1.3.0"
 description = "Sniff out which async library your code is running under"
@@ -372,9 +391,10 @@ standard = ["colorama (>=0.4)", "httptools (>=0.5.0)", "python-dotenv (>=0.13)",
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "751c07ae44ab12f4726631c99b013277ded0526bb0b7f60ce0d43ab21f3f8a65"
+content-hash = "5167dbfc651e2d4c66d1b3f434fa9d704ed54a7d5fb747873b5f9939a6ae0dc2"
 
 [metadata.files]
+aiofiles = []
 aiosmtplib = []
 alembic = []
 annotated-types = []
@@ -398,6 +418,7 @@ pydantic = []
 pydantic-core = []
 pydantic-settings = []
 python-dotenv = []
+python-multipart = []
 sniffio = []
 sqlalchemy = []
 sqlmodel = []

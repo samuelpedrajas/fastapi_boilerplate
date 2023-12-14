@@ -1,4 +1,3 @@
-
 from app.common.base_repository import BaseRepository
 from sqlmodel import Session, select
 from app.modules.core.models.user import Role

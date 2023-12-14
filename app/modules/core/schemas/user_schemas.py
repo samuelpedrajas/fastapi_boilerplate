@@ -1,11 +1,12 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, constr
-from fastapi import Form
+from fastapi import Form, UploadFile, File
 from .country_schemas import CountryResponse
 
 
 class UserCreate(BaseModel):
-    
+
+    photo: UploadFile = File(None)
     username: constr(min_length=2, max_length=50) = Form()
     password: constr(min_length=8, max_length=50) = Form()
     password_confirmation: constr(min_length=8, max_length=50) = Form()
@@ -13,7 +14,6 @@ class UserCreate(BaseModel):
     surname: constr(min_length=2, max_length=50) = Form()
     email: EmailStr = Form()
     country_id: int = Form()
-    filepath: Optional[str] = Form(default=None)
 
 
 class UserResponse(BaseModel):

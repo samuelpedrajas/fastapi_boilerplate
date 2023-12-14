@@ -1,20 +1,19 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File
+from pydantic_core import ValidationError
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi.templating import Jinja2Templates
-from app.modules.core.schemas.user_schemas import UserCreate
+from app.modules.core.schemas.user_schemas import UserCreate, UserResponse
 from app.modules.core.services.auth_service import AuthService, get_auth_service
-from app.helpers.encryption import decrypt
-from app.common.response import standard_response
+from app.common.response import standard_response, StandardResponse
 
 
 router = APIRouter()
 
-@router.post("/register/")
+@router.post("/register/", response_model=StandardResponse[UserResponse], name="auth.register")
 async def register(
     request: Request,
-    user_data: UserCreate,
-    # photo: UploadFile | None = None,
+    user_data: UserCreate = Depends(),
     auth_service: AuthService = Depends(get_auth_service)
 ):
     try:
@@ -24,18 +23,9 @@ async def register(
         return standard_response(200, "Registration successful", user_response)
     except SQLAlchemyError as e:
         raise e
+    except Exception as e:
+        raise e
     
-    # Validate form data
-    # FastAPI uses Pydantic models for request validation, 
-    # so you might not need the same validation check as in Flask
-
-    # Handle file upload
-    filepath = None
-    # if photo:
-    #     filename = secure_filename(photo.filename)  # Ensure you have a secure_filename function
-    #     filepath = os.path.join("storage/uploads", filename)
-    #     with open(filepath, "wb") as buffer:
-    #         shutil.copyfileobj(photo.file, buffer)
 
 
 # Assuming you have a Jinja2Templates instance set up for rendering HTML templates

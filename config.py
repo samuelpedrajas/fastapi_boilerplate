@@ -27,20 +27,24 @@ class CommonSettings(BaseSettings):
         env_file = ".env"
         extra = "ignore"
 
+
 class DevelopmentConfig(CommonSettings):
     DEBUG: bool = True
     LOG_FILE: str = "storage/logs/development.log"
-    # Development specific configurations
+    UPLOADS_DIR: str = "storage/uploads"
+
 
 class ProductionConfig(CommonSettings):
     DEBUG: bool = False
     LOG_FILE: str = "storage/logs/production.log"
-    # Production specific configurations
+    UPLOADS_DIR: str = "storage/uploads"
+
 
 class TestingConfig(CommonSettings):
     TESTING: bool = True
     DEBUG: bool = True
     LOG_FILE: str = "tests/storage/logs/testing.log"
+    UPLOADS_DIR: str = "tests/storage/uploads"
 
     POSTGRES_TEST_USER: str
     POSTGRES_TEST_PASSWORD: str

@@ -17,10 +17,10 @@ class AuthService:
         self.email_service = email_service
 
     async def register(self, user_data: UserCreate, confirmation_url: str) -> User:
-        user = self.user_service.create_user(user_data, "user", False)
+        user = await self.user_service.create_user(user_data, "user", False)
 
         # Send confirmation email
-        email_template = self.email_template_service.get_email_template_by_name("account_confirmation")
+        email_template = await self.email_template_service.get_email_template_by_name("account_confirmation")
         if email_template:
             context = {
                 "name": user.name,
