@@ -3,5 +3,6 @@
 *.pyc
 *.pyo
 *.log
+storage/uploads/*
 tests/storage/uploads/*
 .vscode
