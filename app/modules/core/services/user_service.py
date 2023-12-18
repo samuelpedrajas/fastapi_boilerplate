@@ -1,6 +1,6 @@
 import aiofiles
 from fastapi import Depends
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from app.modules.core.models.user import User
 from app.modules.core.schemas.user_schemas import UserCreate
@@ -14,7 +14,7 @@ from config import settings
 
 
 class UserService:
-    def __init__(self, db: Session, repository: UserRepository, role_service: RoleService):
+    def __init__(self, db: AsyncSession, repository: UserRepository, role_service: RoleService):
         self.db = db
         self.repository = repository
         self.role_service = role_service
@@ -38,11 +38,11 @@ class UserService:
             )
 
             # Assign default role
-            role = self.role_service.get_role_by_name(role_name)
+            role = await self.role_service.get_role_by_name(role_name)
             if role:
                 new_user.roles.append(role)
 
-            return self.repository.create(new_user)
+            return await self.repository.create(new_user)
         except SQLAlchemyError as e:
             transaction.rollback()
             try:
@@ -53,10 +53,11 @@ class UserService:
             raise e
 
     def get_user_response_from_user(self, user: User) -> UserResponse:
+        # Note: Slight coupling between service and repository
         user_data = user.model_dump()
         user_data["country"] = user.country.model_dump()
         return UserResponse.model_validate(user_data)
 
 
-def get_user_service(db: Session = Depends(get_db)) -> UserService:
+def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
     return UserService(db, UserRepository(db), get_role_service(db))

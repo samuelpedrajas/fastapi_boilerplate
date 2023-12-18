@@ -21,7 +21,7 @@ class CommonSettings(BaseSettings):
 
     @property
     def sqlalchemy_database_url(self) -> str:
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@db/{self.POSTGRES_DB}"
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@db/{self.POSTGRES_DB}"
 
     class Config:
         env_file = ".env"

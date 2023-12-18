@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Union, Dict, Any
+from typing import List, Dict, Any
 
 class ValidationError(BaseModel):
     loc: List[str] = Field(...)
