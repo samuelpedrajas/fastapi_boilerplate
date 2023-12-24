@@ -1,17 +1,16 @@
 from fastapi import Depends
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from app.modules.core.models.user import User
 from app.modules.core.schemas.user_schemas import UserCreate
 from app.modules.core.services.user_service import UserService, get_user_service
 from app.modules.core.services.email_template_service import EmailTemplateService, get_email_template_service
 from app.modules.core.services.email_service import EmailService, get_email_service
 from app.common.db import get_db
-from app.helpers.encryption import encrypt
+from app.helpers.encryption import encrypt, decrypt
 
 
 class AuthService:
-    def __init__(self, db: Session, user_service: UserService, email_template_service: EmailTemplateService, email_service: EmailService):
-        self.db = db
+    def __init__(self, user_service: UserService, email_template_service: EmailTemplateService, email_service: EmailService):
         self.user_service = user_service
         self.email_template_service = email_template_service
         self.email_service = email_service
@@ -32,7 +31,14 @@ class AuthService:
 
         return user
 
+    async def confirm(self, token: str) -> User:
+        user_id = int(decrypt(token))
+        user = await self.user_service.get_user_by_id(user_id)
+        if user:
+            user.active = True
+            user = await self.user_service.update_user(user)
+        return user
 
-def get_auth_service(db: Session = Depends(get_db)) -> UserService:
-    return AuthService(db, get_user_service(db), get_email_template_service(db),
+def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
+    return AuthService(get_user_service(db), get_email_template_service(db),
                        get_email_service()) 

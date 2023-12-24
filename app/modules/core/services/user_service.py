@@ -14,8 +14,7 @@ from config import settings
 
 
 class UserService:
-    def __init__(self, db: AsyncSession, repository: UserRepository, role_service: RoleService):
-        self.db = db
+    def __init__(self, repository: UserRepository, role_service: RoleService):
         self.repository = repository
         self.role_service = role_service
 
@@ -25,7 +24,7 @@ class UserService:
             if user_data.photo:
                 filepath = await save_file(user_data.photo, settings.UPLOADS_DIR)
 
-            transaction = self.db.begin_nested()
+            transaction = self.repository.db.begin_nested()
             new_user = User(
                 username=user_data.username,
                 password_hash=hash_password(user_data.password),
@@ -52,6 +51,12 @@ class UserService:
                 pass
             raise e
 
+    async def update_user(self, user: User) -> User:
+        return await self.repository.update(user)
+
+    async def get_user_by_id(self, id: int) -> User:
+        return await self.repository.get_by_id(id)
+
     def get_user_response_from_user(self, user: User) -> UserResponse:
         # Note: Slight coupling between service and repository
         user_data = user.model_dump()
@@ -60,4 +65,4 @@ class UserService:
 
 
 def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
-    return UserService(db, UserRepository(db), get_role_service(db))
+    return UserService(UserRepository(db), get_role_service(db))

@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Any
 
-class ValidationError(BaseModel):
+
+class ValidationErrorSchema(BaseModel):
     loc: List[str] = Field(...)
     msg: str = Field(...)
     type: str = Field(...)
-    input: str = Field(None)
     ctx: Dict[str, Any] = Field(None)

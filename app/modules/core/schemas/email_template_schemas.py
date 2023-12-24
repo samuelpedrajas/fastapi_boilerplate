@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from app.schemas import BaseModel
 from typing import Optional
 from datetime import datetime
 

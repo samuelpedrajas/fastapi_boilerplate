@@ -34,4 +34,6 @@ class EmailTemplate(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
 
-    email_variables: List[EmailVariable] = Relationship(back_populates="email_templates", link_model=EmailTemplateEmailVariable)
+    email_variables: List[EmailVariable] = Relationship(back_populates="email_templates",
+                                                        link_model=EmailTemplateEmailVariable,
+                                                        sa_relationship_kwargs={'lazy': 'joined'})

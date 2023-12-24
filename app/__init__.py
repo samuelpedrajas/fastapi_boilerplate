@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 from app.modules.core.routers.auth_router import router as auth_router
 from app.error_handlers import validation_exception_handler
-from app.schemas import ValidationError
+from app.schemas import ValidationErrorSchema
 from app.common.response import StandardResponse
 from config import settings
 
@@ -27,7 +27,7 @@ def create_app():
         responses={
             422: {
                 "description": "Validation Error",
-                "model": StandardResponse[List[ValidationError]],
+                "model": StandardResponse[List[ValidationErrorSchema]],
             },
         },
     )

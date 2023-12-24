@@ -76,5 +76,5 @@ class User(SQLModel, table=True, target_metadata=metadata):
                                  sa_column_kwargs={"onupdate": datetime.utcnow})
     deleted_at: Optional[datetime] = None
 
-    country: Optional[Country] = Relationship(back_populates="users")
+    country: Optional[Country] = Relationship(back_populates="users", sa_relationship_kwargs={'lazy': 'joined'})
     roles: List[Role] = Relationship(back_populates="users", link_model=UserRole)

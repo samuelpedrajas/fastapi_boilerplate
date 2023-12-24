@@ -31,3 +31,8 @@ class BaseRepository(Generic[T]):
         await self.db.commit()
         await self.db.refresh(object)
         return object
+
+    async def update(self, object: T) -> T:
+        await self.db.commit()
+        await self.db.refresh(object)
+        return object
