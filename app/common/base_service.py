@@ -1,4 +1,4 @@
-from typing import TypeVar, List
+from typing import TypeVar, List, Any
 from sqlmodel import SQLModel, select, Column
 from app.common.base_repository import BaseRepository
 
@@ -12,8 +12,11 @@ class BaseService:
     async def get_all(self) -> List[T]:
         return await self.repository.get_all()
 
-    async def get_by_field(self, field: Column, value: str) -> T:
+    async def get_by_field(self, field: Column, value: Any) -> List[T]:
         return await self.repository.get_by_field(field, value)
+
+    async def get_first_by_field(self, field: Column, value: Any) -> T:
+        return await self.repository.get_first_by_field(field, value)
 
     async def update(self, obj: T) -> T:
         return await self.repository.update(obj)

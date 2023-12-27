@@ -23,8 +23,7 @@ async def register(
     email: str = Form(...),
     country_id: int = Form(...),
     photo: UploadFile = File(None),
-    auth_service: AuthService = Depends(get_auth_service),
-    country_service: CountryService = Depends(get_country_service)
+    auth_service: AuthService = Depends(get_auth_service)
 ):
 
     user_data = None
@@ -42,7 +41,7 @@ async def register(
     except Exception as e:
         return standard_response(422, "Validation error", e.errors())
 
-    validation_errors = await user_data.validate_data(auth_service.user_service, country_service)
+    validation_errors = await auth_service.user_service.validate_data(user_data)
 
     if validation_errors:
         return standard_response(422, "Validation error", validation_errors)
@@ -72,15 +71,10 @@ async def confirm(
         return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "No token provided."}, status_code=400)
 
     try:
-        user = await auth_service.confirm(token)
-
-        if user and not user.active:
+        if await auth_service.confirm(token):
             return templates.TemplateResponse("confirmation_success.html", {"request": request})
 
-        if user and user.active:
-            return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "Account already confirmed."}, status_code=400)
-
-        return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "Invalid token."}, status_code=400)
+        return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "The token is invalid or has expired."}, status_code=400)
         
     except Exception as e:
         logging.error(e)

@@ -19,7 +19,7 @@ class AuthService:
         user = await self.user_service.create_user(user_data, "user", False)
 
         # Send confirmation email
-        email_template = await self.email_template_service.get_by_field("name", "account_confirmation")
+        email_template = await self.email_template_service.get_first_by_field("name", "account_confirmation")
         if email_template:
             context = {
                 "name": user.name,
@@ -31,13 +31,14 @@ class AuthService:
 
         return user
 
-    async def confirm(self, token: str) -> User:
+    async def confirm(self, token: str) -> bool:
         user_id = int(decrypt(token))
-        user = await self.user_service.get_by_field('id', user_id)
-        if user:
+        user = await self.user_service.get_first_by_field('id', user_id)
+        if user and not user.active:
             user.active = True
             user = await self.user_service.update(user)
-        return user
+            return True
+        return False
 
 def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
     return AuthService(get_user_service(db), get_email_template_service(db),

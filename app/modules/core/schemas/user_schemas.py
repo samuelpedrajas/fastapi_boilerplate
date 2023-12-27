@@ -1,13 +1,10 @@
 from typing import Optional
-from datetime import datetime, timedelta
 from pydantic import EmailStr, constr, validator
 from pydantic_core import PydanticCustomError
 from fastapi import UploadFile, File
 from app.helpers.uploads import validate_file_size
-from app.modules.core.services.user_service import UserService
-from app.modules.core.services.country_service import CountryService
 from app.modules.core.schemas.country_schemas import CountryResponse
-from app.schemas import ValidationErrorSchema, BaseModel
+from app.schemas import BaseModel
 from config import settings
 
 
@@ -40,29 +37,6 @@ class UserCreate(BaseModel):
                 'Photo must be less than {max_size} bytes.',
             )
         return v
-
-    async def validate_data(self, user_service: UserService, country_service: CountryService):
-        validation_errors = []
-        timeout_duration = timedelta(seconds=settings.ACCOUNT_ACTIVATION_TIMEOUT)
-        account_creation_limit = datetime.utcnow() - timeout_duration
-        user = await user_service.get_by_field('username', self.username)
-        if user and (user.active or user.created_at > account_creation_limit):
-            validation_errors.append(
-                ValidationErrorSchema(
-                    loc=("body", "username",),
-                    msg="Username already exists",
-                    type="db_error.duplicate",
-                )
-            )
-        if await country_service.get_by_field('id', self.country_id) is None:
-            validation_errors.append(
-                ValidationErrorSchema(
-                    loc=("body", "country_id",),
-                    msg="Invalid country",
-                    type="db_error.not_found",
-                )
-            )
-        return validation_errors
 
 
 class UserResponse(BaseModel):

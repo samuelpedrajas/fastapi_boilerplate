@@ -1,4 +1,6 @@
 import aiofiles
+from typing import Any
+from datetime import datetime, timedelta
 from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,23 +10,54 @@ from app.modules.core.schemas.user_schemas import UserCreate
 from app.modules.core.repositories.user_repository import UserRepository
 from app.modules.core.schemas.user_schemas import UserResponse
 from app.modules.core.services.role_service import RoleService, get_role_service
+from app.modules.core.services.country_service import CountryService, get_country_service
 from app.helpers.encryption import hash_password
 from app.common.db import get_db
 from app.helpers.uploads import save_file
+from app.schemas import ValidationErrorSchema
 from config import settings
 
 
 class UserService(BaseService):
-    def __init__(self, repository: UserRepository, role_service: RoleService):
+    def __init__(self, repository: UserRepository, role_service: RoleService, country_service: CountryService):
         self.repository = repository
         self.role_service = role_service
+        self.country_service = country_service
+
+    async def validate_data(self, user_data: UserCreate):
+        validation_errors = []
+
+        if await self.user_already_exists("username", user_data.username):
+            validation_errors.append(
+                ValidationErrorSchema(
+                    loc=("body", "username",),
+                    msg="Username already exists",
+                    type="db_error.duplicate",
+                )
+            )
+        if await self.user_already_exists("email", user_data.email):
+            validation_errors.append(
+                ValidationErrorSchema(
+                    loc=("body", "email",),
+                    msg="Email already exists",
+                    type="db_error.duplicate",
+                )
+            )
+        if await self.country_service.get_first_by_field('id', user_data.country_id) is None:
+            validation_errors.append(
+                ValidationErrorSchema(
+                    loc=("body", "country_id",),
+                    msg="Invalid country",
+                    type="db_error.not_found",
+                )
+            )
+        return validation_errors
 
     async def create_user(self, user_data: UserCreate, role_name: str = "user", active: bool = False) -> User:
-        user = await self.get_by_field('username', user_data.username)
-        if user and user.active:
+        username_exists = await self.user_already_exists("username", user_data.username, True)
+        email_exists = await self.user_already_exists("email", user_data.email, True)
+        if username_exists or email_exists:
             raise Exception("User already exists")
-        if user:
-            await self.user_service.delete(user)
 
         filepath = None
         try:
@@ -44,7 +77,7 @@ class UserService(BaseService):
             )
 
             # Assign default role
-            role = await self.role_service.get_by_field('name', role_name)
+            role = await self.role_service.get_first_by_field('name', role_name)
             new_user.roles.append(role)
 
             return await self.repository.create(new_user)
@@ -57,6 +90,27 @@ class UserService(BaseService):
                 pass
             raise e
 
+    async def user_already_exists(self, field: str, value: Any, clean_up_non_active: bool = False) -> bool:
+        users = await self.repository.get_by_field(field, value)
+
+        if not users:
+            return False
+
+        timeout_duration = timedelta(seconds=settings.ACCOUNT_ACTIVATION_TIMEOUT)
+        account_creation_limit = datetime.utcnow() - timeout_duration
+        for user in users:
+            if user.active:
+                return True
+
+            if user.created_at > account_creation_limit:
+                return True
+
+        if clean_up_non_active:
+            for user in users:
+                await self.repository.delete(user)
+
+        return False        
+
     def get_user_response_from_user(self, user: User) -> UserResponse:
         # Note: Slight coupling between service and repository
         user_data = user.model_dump()
@@ -65,4 +119,4 @@ class UserService(BaseService):
 
 
 def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
-    return UserService(UserRepository(db), get_role_service(db))
+    return UserService(UserRepository(db), get_role_service(db), get_country_service(db))
