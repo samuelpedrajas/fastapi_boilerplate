@@ -4,6 +4,8 @@ from pydantic import EmailStr, constr, validator
 from pydantic_core import PydanticCustomError
 from fastapi import UploadFile, File
 from app.helpers.uploads import validate_file_size
+from app.modules.core.services.user_service import UserService
+from app.modules.core.services.country_service import CountryService
 from app.modules.core.schemas.country_schemas import CountryResponse
 from app.schemas import ValidationErrorSchema, BaseModel
 from config import settings
@@ -39,11 +41,11 @@ class UserCreate(BaseModel):
             )
         return v
 
-    async def validate_data(self, user_service, country_service):
+    async def validate_data(self, user_service: UserService, country_service: CountryService):
         validation_errors = []
         timeout_duration = timedelta(seconds=settings.ACCOUNT_ACTIVATION_TIMEOUT)
         account_creation_limit = datetime.utcnow() - timeout_duration
-        user = await user_service.get_user_by_username(self.username)
+        user = await user_service.get_by_field('username', self.username)
         if user and (user.active or user.created_at > account_creation_limit):
             validation_errors.append(
                 ValidationErrorSchema(
@@ -52,7 +54,7 @@ class UserCreate(BaseModel):
                     type="db_error.duplicate",
                 )
             )
-        if await country_service.get_country_by_id(self.country_id) is None:
+        if await country_service.get_by_field('id', self.country_id) is None:
             validation_errors.append(
                 ValidationErrorSchema(
                     loc=("body", "country_id",),

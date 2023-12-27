@@ -1,6 +1,7 @@
 from typing import Type, TypeVar, Generic, List
-from sqlmodel import SQLModel, select
+from sqlmodel import SQLModel, select, Column
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 
 T = TypeVar('T', bound=SQLModel)
 
@@ -14,28 +15,23 @@ class BaseRepository(Generic[T]):
         results = await self.db.exec(statement)
         return results.all()
 
-    async def get_by_id(self, id: int) -> T:
-        statement = select(self.model).where(self.model.id == id)
+    async def get_by_field(self, field: Column, value: str) -> T:
+        statement = select(self.model).where(field == value)
         results = await self.db.exec(statement)
         return results.first()
 
-    async def delete_by_id(self, id: int) -> None:
-        statement = select(self.model).where(self.model.id == id)
-        obj = await self.db.get(statement)
-        if obj:
-            self.db.delete(obj)
+    async def create(self, obj: T) -> T:
+        self.db.add(obj)
+        await self.db.commit()
+        await self.db.refresh(obj)
+        return obj
+
+    async def update(self, obj: T) -> T:
+        await self.db.commit()
+        await self.db.refresh(obj)
+        return obj
 
     async def delete(self, obj: T) -> None:
         await self.db.delete(obj)
         await self.db.commit()
 
-    async def create(self, object: T) -> T:
-        self.db.add(object)
-        await self.db.commit()
-        await self.db.refresh(object)
-        return object
-
-    async def update(self, object: T) -> T:
-        await self.db.commit()
-        await self.db.refresh(object)
-        return object

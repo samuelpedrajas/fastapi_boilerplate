@@ -2,6 +2,7 @@ import aiofiles
 from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from app.common.base_service import BaseService
 from app.modules.core.models.user import User
 from app.modules.core.schemas.user_schemas import UserCreate
 from app.modules.core.repositories.user_repository import UserRepository
@@ -13,17 +14,17 @@ from app.helpers.uploads import save_file
 from config import settings
 
 
-class UserService:
+class UserService(BaseService):
     def __init__(self, repository: UserRepository, role_service: RoleService):
         self.repository = repository
         self.role_service = role_service
 
     async def create_user(self, user_data: UserCreate, role_name: str = "user", active: bool = False) -> User:
-        user = await self.user_service.get_user_by_username(user_data.username)
+        user = await self.get_by_field('username', user_data.username)
         if user and user.active:
             raise Exception("User already exists")
         if user:
-            await self.user_service.delete_user(user)
+            await self.user_service.delete(user)
 
         filepath = None
         try:
@@ -43,7 +44,7 @@ class UserService:
             )
 
             # Assign default role
-            role = await self.role_service.get_role_by_name(role_name)
+            role = await self.role_service.get_by_field('name', role_name)
             new_user.roles.append(role)
 
             return await self.repository.create(new_user)
@@ -55,18 +56,6 @@ class UserService:
             except:
                 pass
             raise e
-
-    async def update_user(self, user: User) -> User:
-        return await self.repository.update(user)
-
-    async def delete_user(self, user: User) -> None:
-        await self.repository.delete(user)
-
-    async def get_user_by_id(self, id: int) -> User:
-        return await self.repository.get_by_id(id)
-
-    async def get_user_by_username(self, username: str) -> User:
-        return await self.repository.get_by_username(username)
 
     def get_user_response_from_user(self, user: User) -> UserResponse:
         # Note: Slight coupling between service and repository
