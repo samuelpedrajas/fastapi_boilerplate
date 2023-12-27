@@ -42,7 +42,7 @@ async def register(
     except Exception as e:
         return standard_response(422, "Validation error", e.errors())
 
-    validation_errors = await user_data.validate_data(country_service)
+    validation_errors = await user_data.validate_data(auth_service.user_service, country_service)
 
     if validation_errors:
         return standard_response(422, "Validation error", validation_errors)

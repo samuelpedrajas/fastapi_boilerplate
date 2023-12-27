@@ -2,6 +2,7 @@ import os
 from pydantic_settings import BaseSettings
 
 class CommonSettings(BaseSettings):
+    ACCOUNT_ACTIVATION_TIMEOUT: int = 86400  # 24 hours
     SERVER_NAME: str
     SECRET_KEY: str
     FASTAPI_RUN_PORT: int

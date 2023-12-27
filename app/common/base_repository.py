@@ -23,8 +23,11 @@ class BaseRepository(Generic[T]):
         statement = select(self.model).where(self.model.id == id)
         obj = await self.db.get(statement)
         if obj:
-            await self.db.delete(obj)
-            await self.db.commit()
+            self.db.delete(obj)
+
+    async def delete(self, obj: T) -> None:
+        await self.db.delete(obj)
+        await self.db.commit()
 
     async def create(self, object: T) -> T:
         self.db.add(object)

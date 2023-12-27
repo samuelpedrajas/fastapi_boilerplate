@@ -19,6 +19,12 @@ class UserService:
         self.role_service = role_service
 
     async def create_user(self, user_data: UserCreate, role_name: str = "user", active: bool = False) -> User:
+        user = await self.user_service.get_user_by_username(user_data.username)
+        if user and user.active:
+            raise Exception("User already exists")
+        if user:
+            await self.user_service.delete_user(user)
+
         filepath = None
         try:
             if user_data.photo:
@@ -38,8 +44,7 @@ class UserService:
 
             # Assign default role
             role = await self.role_service.get_role_by_name(role_name)
-            if role:
-                new_user.roles.append(role)
+            new_user.roles.append(role)
 
             return await self.repository.create(new_user)
         except SQLAlchemyError as e:
@@ -54,8 +59,14 @@ class UserService:
     async def update_user(self, user: User) -> User:
         return await self.repository.update(user)
 
+    async def delete_user(self, user: User) -> None:
+        await self.repository.delete(user)
+
     async def get_user_by_id(self, id: int) -> User:
         return await self.repository.get_by_id(id)
+
+    async def get_user_by_username(self, username: str) -> User:
+        return await self.repository.get_by_username(username)
 
     def get_user_response_from_user(self, user: User) -> UserResponse:
         # Note: Slight coupling between service and repository

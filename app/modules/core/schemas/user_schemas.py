@@ -1,15 +1,17 @@
 from typing import Optional
+from datetime import datetime, timedelta
 from pydantic import EmailStr, constr, validator
 from pydantic_core import PydanticCustomError
 from fastapi import UploadFile, File
 from app.helpers.uploads import validate_file_size
 from app.modules.core.schemas.country_schemas import CountryResponse
 from app.schemas import ValidationErrorSchema, BaseModel
+from config import settings
 
 
 class UserCreate(BaseModel):
 
-    photo: UploadFile = File(None)
+    photo: Optional[UploadFile] = File(None)
     username: constr(min_length=2, max_length=50)
     password: constr(min_length=8, max_length=50)
     password_confirmation: constr(min_length=8, max_length=50)
@@ -37,8 +39,19 @@ class UserCreate(BaseModel):
             )
         return v
 
-    async def validate_data(self, country_service):
+    async def validate_data(self, user_service, country_service):
         validation_errors = []
+        timeout_duration = timedelta(seconds=settings.ACCOUNT_ACTIVATION_TIMEOUT)
+        account_creation_limit = datetime.utcnow() - timeout_duration
+        user = await user_service.get_user_by_username(self.username)
+        if user and (user.active or user.created_at > account_creation_limit):
+            validation_errors.append(
+                ValidationErrorSchema(
+                    loc=("body", "username",),
+                    msg="Username already exists",
+                    type="db_error.duplicate",
+                )
+            )
         if await country_service.get_country_by_id(self.country_id) is None:
             validation_errors.append(
                 ValidationErrorSchema(

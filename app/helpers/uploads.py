@@ -6,10 +6,9 @@ from fastapi import UploadFile, HTTPException, status
 
 
 def get_unique_filename(original_filename: str) -> str:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     unique_id = uuid.uuid4()
     extension = original_filename.split('.')[-1]
-    return f"{timestamp}_{unique_id}.{extension}"
+    return f"{unique_id}.{extension}"
 
 
 def validate_file_size(file: IO, file_size: int = 2097152) -> bool:
