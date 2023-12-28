@@ -27,7 +27,7 @@ class UserService(BaseService):
     async def validate_data(self, user_data: UserCreate):
         validation_errors = []
 
-        if await self.user_already_exists("username", user_data.username):
+        if await self.user_data_already_exists("username", user_data.username):
             validation_errors.append(
                 ValidationErrorSchema(
                     loc=("body", "username",),
@@ -35,7 +35,7 @@ class UserService(BaseService):
                     type="db_error.duplicate",
                 )
             )
-        if await self.user_already_exists("email", user_data.email):
+        if await self.user_data_already_exists("email", user_data.email):
             validation_errors.append(
                 ValidationErrorSchema(
                     loc=("body", "email",),
@@ -54,9 +54,7 @@ class UserService(BaseService):
         return validation_errors
 
     async def create_user(self, user_data: UserCreate, role_name: str = "user", active: bool = False) -> User:
-        username_exists = await self.user_already_exists("username", user_data.username, True)
-        email_exists = await self.user_already_exists("email", user_data.email, True)
-        if username_exists or email_exists:
+        if self.user_already_exists(user_data, clean_up_non_active=True):
             raise Exception("User already exists")
 
         filepath = None
@@ -90,7 +88,12 @@ class UserService(BaseService):
                 pass
             raise e
 
-    async def user_already_exists(self, field: str, value: Any, clean_up_non_active: bool = False) -> bool:
+    async def user_already_exists(self, user_data: UserCreate, clean_up_non_active: bool = False) -> bool:
+        username_exists = await self.user_data_already_exists("username", user_data.username, clean_up_non_active)
+        email_exists = await self.user_data_already_exists("email", user_data.email, clean_up_non_active)
+        return username_exists or email_exists
+
+    async def user_data_already_exists(self, field: str, value: Any, clean_up_non_active: bool = False) -> bool:
         users = await self.repository.get_by_field(field, value)
 
         if not users:
@@ -105,6 +108,7 @@ class UserService(BaseService):
             if user.created_at > account_creation_limit:
                 return True
 
+        # only clean up if users are not active and timeout has passed
         if clean_up_non_active:
             for user in users:
                 await self.repository.delete(user)
