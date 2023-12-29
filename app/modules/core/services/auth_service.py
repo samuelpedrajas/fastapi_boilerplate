@@ -1,4 +1,9 @@
-from fastapi import Depends
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
+from typing_extensions import Annotated, Doc
+from fastapi import Depends, Request, status, HTTPException
+from fastapi.security import HTTPBearer
+from jose import JWTError, jwt
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.modules.core.models.user import User
 from app.modules.core.schemas.user_schemas import UserCreate
@@ -6,10 +11,18 @@ from app.modules.core.services.user_service import UserService, get_user_service
 from app.modules.core.services.email_template_service import EmailTemplateService, get_email_template_service
 from app.modules.core.services.email_service import EmailService, get_email_service
 from app.common.db import get_db
-from app.helpers.encryption import encrypt, decrypt
+from app.helpers.security import encrypt, decrypt, verify_password
+from config import settings
+
+
+class UnauthorizedException(HTTPException):
+    def __init__(self):
+        super().__init__(401, "Unauthorized")
 
 
 class AuthService:
+    ALGORITHM = "HS256"
+
     def __init__(self, user_service: UserService, email_template_service: EmailTemplateService, email_service: EmailService):
         self.user_service = user_service
         self.email_template_service = email_template_service
@@ -18,7 +31,6 @@ class AuthService:
     async def register(self, user_data: UserCreate, confirmation_url: str) -> User:
         user = await self.user_service.create_user(user_data, "user", False)
 
-        # Send confirmation email
         email_template = await self.email_template_service.get_first_by_field("name", "account_confirmation")
         if email_template:
             context = {
@@ -40,6 +52,53 @@ class AuthService:
             return True
         return False
 
+    async def authenticate_user(self, username: str, password: str):
+        user = await self.user_service.get_first_by_field('username', username)
+        if not user or not verify_password(password, user.password_hash) or not user.active:
+            return None
+        return user
+
+    def create_access_token(self, user: User) -> str:
+        token_life = settings.JWT_ACCESS_TOKEN_EXPIRE_DAYS
+        expire = datetime.utcnow() + timedelta(days=token_life)
+        to_encode = {
+            "sub": str(user.id),
+            "username": user.username,
+            "email": user.email,
+            "name": user.name,
+            "surname": user.surname,
+            "role": [{"id": role.id, "name": role.name} for role in user.roles],
+            "active": user.active,
+            "exp": expire,
+        }
+        encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=self.ALGORITHM)
+        return encoded_jwt
+
+    async def get_current_user(self, token: str):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[self.ALGORITHM])
+            user_id: int = int(payload.get("sub"))
+            if user_id is None:
+                raise UnauthorizedException()
+        except JWTError:
+            raise UnauthorizedException()
+        user = await self.user_service.get_first_by_field('id', user_id)
+        if user is None:
+            raise UnauthorizedException()
+        return user
+
+
 def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
     return AuthService(get_user_service(db), get_email_template_service(db),
                        get_email_service()) 
+
+
+bearer_scheme = HTTPBearer(auto_error=False)
+async def get_current_user(bearer_token = Depends(bearer_scheme), auth_service: AuthService = Depends(get_auth_service)):
+    try:
+        if not bearer_token:
+            raise UnauthorizedException()
+        token = bearer_token.credentials
+        return await auth_service.get_current_user(token)
+    except Exception as e:
+        raise e

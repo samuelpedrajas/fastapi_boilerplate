@@ -1,5 +1,5 @@
 from typing import Type, TypeVar, Generic, List, Tuple, Any
-from sqlmodel import SQLModel, select, Column, and_, or_
+from sqlmodel import SQLModel, select, and_, or_
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 
@@ -15,15 +15,20 @@ class BaseRepository(Generic[T]):
         results = await self.db.exec(statement)
         return results.all()
 
-    async def get_by_field(self, field: Column, value: Any) -> List[T]:
+    async def get_by_field(self, field: str, value: Any, unique: bool = True) -> List[T]:
         statement = select(self.model).where(getattr(self.model, field) == value)
         results = await self.db.exec(statement)
-        return results
+        if unique:
+            return results.unique().all()
+        return results.all()
 
-    async def get_first_by_field(self, field: Column, value: Any) -> T:
-        return (await self.get_by_field(field, value)).first()
+    async def get_first_by_field(self, field: str, value: Any, unique: bool = True) -> T:
+        results = await self.get_by_field(field, value, unique)
+        if results:
+            return results[0]
+        return None
 
-    async def get_by_fields(self, fields: List[Tuple[str, Any]], use_or: bool = False) -> List[T]:
+    async def get_by_fields(self, fields: List[Tuple[str, Any]], use_or: bool = False, unique: bool = True) -> List[T]:
         if not fields:
             return []
 
@@ -32,6 +37,8 @@ class BaseRepository(Generic[T]):
         statement = select(self.model).where(op(*conditions))
         results = await self.db.exec(statement)
 
+        if unique:
+            return results.unique().all()
         return results.all()
 
     async def create(self, obj: T) -> T:

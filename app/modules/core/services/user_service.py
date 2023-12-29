@@ -1,5 +1,5 @@
 import aiofiles
-from typing import Any
+from typing import Any, List
 from datetime import datetime, timedelta
 from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -11,11 +11,15 @@ from app.modules.core.repositories.user_repository import UserRepository
 from app.modules.core.schemas.user_schemas import UserResponse
 from app.modules.core.services.role_service import RoleService, get_role_service
 from app.modules.core.services.country_service import CountryService, get_country_service
-from app.helpers.encryption import hash_password
+from app.helpers.security import get_password_hash
 from app.common.db import get_db
 from app.helpers.uploads import save_file
 from app.schemas import ValidationErrorSchema
 from config import settings
+
+
+class UserAlreadyExistsException(Exception):
+    message = "User already exists"
 
 
 class UserService(BaseService):
@@ -24,7 +28,7 @@ class UserService(BaseService):
         self.role_service = role_service
         self.country_service = country_service
 
-    async def validate_data(self, user_data: UserCreate):
+    async def validate_data(self, user_data: UserCreate) -> List[ValidationErrorSchema]:
         validation_errors = []
 
         if await self.user_data_already_exists("username", user_data.username):
@@ -54,8 +58,8 @@ class UserService(BaseService):
         return validation_errors
 
     async def create_user(self, user_data: UserCreate, role_name: str = "user", active: bool = False) -> User:
-        if self.user_already_exists(user_data, clean_up_non_active=True):
-            raise Exception("User already exists")
+        if await self.user_already_exists(user_data, clean_up_non_active=True):
+            raise UserAlreadyExistsException()
 
         filepath = None
         try:
@@ -65,7 +69,7 @@ class UserService(BaseService):
             transaction = self.repository.db.begin_nested()
             new_user = User(
                 username=user_data.username,
-                password_hash=hash_password(user_data.password),
+                password_hash=get_password_hash(user_data.password),
                 name=user_data.name,
                 surname=user_data.surname,
                 email=user_data.email,
@@ -79,7 +83,7 @@ class UserService(BaseService):
             new_user.roles.append(role)
 
             return await self.repository.create(new_user)
-        except SQLAlchemyError as e:
+        except Exception as e:
             transaction.rollback()
             try:
                 if filepath is not None:

@@ -1,14 +1,15 @@
 import os, logging
 from typing import List
 from logging.handlers import RotatingFileHandler
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import RequestValidationError, HTTPException
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from app.modules.core.routers.auth_router import router as auth_router
-from app.error_handlers import validation_exception_handler
+from app.error_handlers import validation_exception_handler, http_exception_handler
 from app.schemas import ValidationErrorSchema
 from app.common.response import StandardResponse
 from config import settings
+
 
 def configure_logging():
     log_file = os.getenv('LOG_FILE', settings.LOG_FILE)
@@ -20,10 +21,14 @@ def configure_logging():
     file_handler.setLevel(log_level)
     logging.getLogger().addHandler(file_handler)
 
+
 def create_app():
     load_dotenv()
     app = FastAPI(
-        exception_handlers={RequestValidationError: validation_exception_handler},
+        exception_handlers={
+            RequestValidationError: validation_exception_handler,
+            HTTPException: http_exception_handler
+        },
         responses={
             422: {
                 "description": "Validation Error",
@@ -32,8 +37,10 @@ def create_app():
         },
     )
 
-    configure_logging()
-
     app.include_router(auth_router, prefix='/v1/auth')
 
+    configure_logging()
+
     return app
+
+app = create_app()

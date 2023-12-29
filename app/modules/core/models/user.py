@@ -77,4 +77,4 @@ class User(SQLModel, table=True, target_metadata=metadata):
     deleted_at: Optional[datetime] = None
 
     country: Optional[Country] = Relationship(back_populates="users", sa_relationship_kwargs={'lazy': 'joined'})
-    roles: List[Role] = Relationship(back_populates="users", link_model=UserRole)
+    roles: List[Role] = Relationship(back_populates="users", link_model=UserRole, sa_relationship_kwargs={'lazy': 'joined'})

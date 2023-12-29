@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 
 class CommonSettings(BaseSettings):
     ACCOUNT_ACTIVATION_TIMEOUT: int = 86400  # 24 hours
+    JWT_ACCESS_TOKEN_EXPIRE_DAYS: int = 30
     SERVER_NAME: str
     SECRET_KEY: str
     FASTAPI_RUN_PORT: int
