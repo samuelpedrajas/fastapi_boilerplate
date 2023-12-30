@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
-from typing_extensions import Annotated, Doc
-from fastapi import Depends, Request, status, HTTPException
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
 from jose import JWTError, jwt
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -14,6 +12,8 @@ from app.common.db import get_db
 from app.helpers.security import encrypt, decrypt, verify_password
 from config import settings
 
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 class UnauthorizedException(HTTPException):
     def __init__(self):
@@ -93,12 +93,17 @@ def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
                        get_email_service()) 
 
 
-bearer_scheme = HTTPBearer(auto_error=False)
 async def get_current_user(bearer_token = Depends(bearer_scheme), auth_service: AuthService = Depends(get_auth_service)):
-    try:
-        if not bearer_token:
+    if not bearer_token or not bearer_token.credentials:
+        raise UnauthorizedException()
+    token = bearer_token.credentials
+    return await auth_service.get_current_user(token)
+
+
+def has_permission(required_permission: str):
+    async def permission_checker(current_user: User = Depends(get_current_user)) -> User:
+        user_permissions = {perm.name for role in current_user.roles for perm in role.permissions}
+        if not required_permission in user_permissions:
             raise UnauthorizedException()
-        token = bearer_token.credentials
-        return await auth_service.get_current_user(token)
-    except Exception as e:
-        raise e
+        return current_user
+    return permission_checker

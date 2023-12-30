@@ -1,16 +1,14 @@
 import logging
 from fastapi import APIRouter, Depends, Request, UploadFile, Form, File
-from sqlalchemy.exc import SQLAlchemyError
 from fastapi.templating import Jinja2Templates
 from app.modules.core.models.user import User
 from app.modules.core.schemas.auth_schemas import Token, LoginForm
 from app.modules.core.schemas.user_schemas import UserCreate, UserResponse
 from app.modules.core.services.user_service import UserService, get_user_service
-from app.modules.core.services.auth_service import AuthService, get_auth_service, get_current_user
-from app.modules.core.services.country_service import CountryService, get_country_service
+from app.modules.core.services.auth_service import AuthService, get_auth_service, has_permission
 from app.common.response import standard_response, StandardResponse
 from app.schemas import ValidationErrorSchema
-from typing import List, Union, Annotated
+from typing import List, Union
 
 router = APIRouter()
 
@@ -81,7 +79,7 @@ async def confirm(
         logging.error(e)
         return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "An error occurred during confirmation."}, status_code=500)
 
-@router.post("/login", response_model=StandardResponse[Token], name="auth.login")
+@router.post("/login", response_model=StandardResponse[Token])
 async def login(
     form_data: LoginForm = Depends(),
     auth_service: AuthService = Depends(get_auth_service)
@@ -96,7 +94,7 @@ async def login(
 
 @router.get("/me", response_model=StandardResponse[User])
 async def me(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(has_permission("base")),
     user_service: UserService = Depends(get_user_service)
 ):
     response_user = user_service.get_user_response_from_user(current_user)

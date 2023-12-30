@@ -55,7 +55,7 @@ class Role(SQLModel, table=True, target_metadata=metadata):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
 
-    permissions: List[Permission] = Relationship(back_populates="roles", link_model=RolePermission)
+    permissions: List[Permission] = Relationship(back_populates="roles", link_model=RolePermission, sa_relationship_kwargs={'lazy': 'joined'})
     users: List["User"] = Relationship(back_populates="roles", link_model=UserRole)
 
 
