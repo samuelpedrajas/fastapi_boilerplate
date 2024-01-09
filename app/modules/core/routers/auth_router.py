@@ -13,7 +13,12 @@ from typing import List, Union
 router = APIRouter()
 
 # Note: there's no native way to use Pydantic models with Form data
-@router.post("/register/", response_model=Union[StandardResponse[UserResponse], StandardResponse[List[ValidationErrorSchema]]], name="auth.register")
+@router.post(
+    "/auth/register/",
+    response_model=Union[StandardResponse[UserResponse], StandardResponse[List[ValidationErrorSchema]]],
+    name="auth.register",
+    tags=["Auth"]
+)
 async def register(
     request: Request,
     username: str = Form(...),
@@ -42,7 +47,7 @@ async def register(
     except Exception as e:
         return standard_response(422, "Validation error", e.errors())
 
-    validation_errors = await auth_service.user_service.validate_data(user_data)
+    validation_errors = await auth_service.user_service.validate_data_create(user_data)
 
     if validation_errors:
         return standard_response(422, "Validation error", validation_errors)
@@ -60,11 +65,16 @@ async def register(
 # Assuming you have a Jinja2Templates instance set up for rendering HTML templates
 templates = Jinja2Templates(directory="app/modules/core/templates")
 
-@router.get("/confirm/", include_in_schema=False, name="auth.confirm")
+@router.get(
+    "/auth/confirm/",
+    include_in_schema=False,
+    name="auth.confirm",
+    tags=["Auth"]
+)
 async def confirm(
     token: str,
     request: Request,
-    auth_service: AuthService = Depends(get_auth_service)
+    auth_service: AuthService = Depends(get_auth_service),
 ):
     if not token:
         return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "No token provided."}, status_code=400)
@@ -79,7 +89,11 @@ async def confirm(
         logging.error(e)
         return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "An error occurred during confirmation."}, status_code=500)
 
-@router.post("/login", response_model=StandardResponse[Token])
+@router.post(
+    "/auth/login",
+    response_model=StandardResponse[Token],
+    tags=["Auth"]
+)
 async def login(
     form_data: LoginForm = Depends(),
     auth_service: AuthService = Depends(get_auth_service)
@@ -92,7 +106,11 @@ async def login(
     return standard_response(200, "Login successful", token)
 
 
-@router.get("/me", response_model=StandardResponse[User])
+@router.get(
+    "/auth/me",
+    response_model=StandardResponse[User],
+    tags=["Auth"]
+)
 async def me(
     current_user: User = Depends(has_permission("base")),
     user_service: UserService = Depends(get_user_service)
