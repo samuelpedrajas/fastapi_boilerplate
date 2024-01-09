@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import AsyncIterator
 import pytest
@@ -71,6 +72,13 @@ DEFAULT_EMAIL_TEMPLATES_EMAIL_VARIABLES = [
 async def async_engine():
     async_engine = create_async_engine(settings.sqlalchemy_test_database_url, poolclass=NullPool)
 
+    yield async_engine
+
+    await async_engine.dispose()
+
+
+@pytest.fixture(scope="module", autouse=True)
+async def setup_db(async_engine):
     async with async_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
         await conn.execute(insert(Country), DEFAULT_COUNTRIES)
@@ -81,23 +89,25 @@ async def async_engine():
         await conn.execute(insert(EmailVariable), DEFAULT_EMAIL_VARIABLES)
         await conn.execute(insert(EmailTemplateEmailVariable), DEFAULT_EMAIL_TEMPLATES_EMAIL_VARIABLES)
 
-    yield async_engine
+    yield
 
     async with async_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
-    await async_engine.dispose()
 
-    # clean up the uploads folder
+@pytest.fixture(scope="module", autouse=True)
+async def clean_up_uploads():
+    yield
+
     for file in os.listdir(settings.UPLOADS_DIR):
         file_path = os.path.join(settings.UPLOADS_DIR, file)
         try:
             if os.path.isfile(file_path) and not file.startswith('.'):
                 os.unlink(file_path)
         except Exception as e:
-            print(e)
-        
-    
+            logging.error(f"Failed to delete {file_path}: {str(e)}")
+            raise e
+
 
 @pytest.fixture(scope="function")
 async def app():

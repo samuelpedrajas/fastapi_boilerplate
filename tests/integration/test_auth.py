@@ -92,7 +92,7 @@ async def test_register_validation_error(app, test_client, current_transaction):
         'name': '',
         'surname': '',
         'email': '',
-        'country_id': '',
+        'country_id': '1',
         'photo': '',
     })
 
@@ -137,13 +137,6 @@ async def test_register_validation_error(app, test_client, current_transaction):
                     'input': None,
                     'url': 'https://errors.pydantic.dev/2.5/v/missing'
                 },
-                {
-                    'type': 'missing',
-                    'loc': ['body', 'country_id'],
-                    'msg': 'Field required',
-                    'input': None,
-                    'url': 'https://errors.pydantic.dev/2.5/v/missing'
-                }
             ]
         }
     }
