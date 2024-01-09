@@ -1,10 +1,13 @@
 from logging.config import fileConfig
 
 from alembic import context
+from sqlalchemy import create_engine
 
-from app.common.db import async_engine, metadata, sqlalchemy_database_url
+from app.common.db import metadata, sqlalchemy_database_url
+from config import settings
 
-engine = async_engine
+engine = create_engine(settings.sqlalchemy_database_url.replace('+asyncpg', ''))
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
