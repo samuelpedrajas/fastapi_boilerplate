@@ -14,7 +14,7 @@ router = APIRouter()
 
 # Note: there's no native way to use Pydantic models with Form data
 @router.post(
-    "/auth/register/",
+    "/auth/register",
     response_model=Union[StandardResponse[UserResponse], StandardResponse[List[ValidationErrorSchema]]],
     name="auth.register",
     tags=["Auth"]
@@ -31,7 +31,6 @@ async def register(
     photo: UploadFile = File(None),
     auth_service: AuthService = Depends(get_auth_service)
 ):
-
     user_data = None
     try:
         user_data = UserCreate(
@@ -51,7 +50,7 @@ async def register(
 
     if validation_errors:
         return standard_response(422, "Validation error", validation_errors)
-        
+
     try:
         confirmation_url = str(request.url_for("auth.confirm"))
         user = await auth_service.register(user_data, confirmation_url)
@@ -59,11 +58,10 @@ async def register(
         return standard_response(200, "Registration successful", user_response)
     except Exception as e:
         raise e
-    
 
 
-# Assuming you have a Jinja2Templates instance set up for rendering HTML templates
 templates = Jinja2Templates(directory="app/modules/core/templates")
+
 
 @router.get(
     "/auth/confirm/",
@@ -84,10 +82,11 @@ async def confirm(
             return templates.TemplateResponse("confirmation_success.html", {"request": request})
 
         return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "The token is invalid or has expired."}, status_code=400)
-        
+
     except Exception as e:
         logging.error(e)
         return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "An error occurred during confirmation."}, status_code=500)
+
 
 @router.post(
     "/auth/login",

@@ -40,6 +40,7 @@ class UserCreate(UserBase):
     surname: constr(min_length=2, max_length=50)
     email: EmailStr
     country_id: int
+    role_id: Optional[int] = None
 
     @validator('password_confirmation')
     def check_passwords_match(cls, v, values, **kwargs):

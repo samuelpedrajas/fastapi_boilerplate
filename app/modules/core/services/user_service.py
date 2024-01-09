@@ -28,7 +28,7 @@ class UserService(BaseService):
         self.role_service = role_service
         self.country_service = country_service
 
-    async def create_user(self, user_data: UserCreate, role_name: str = "user", active: bool = False) -> User:
+    async def create_user(self, user_data: UserCreate, active: bool = False) -> User:
         if await self.user_already_exists(user_data, clean_up_non_active=True):
             raise UserAlreadyExistsException()
 
@@ -49,9 +49,13 @@ class UserService(BaseService):
                 active=active
             )
 
-            # Assign default role
-            role = await self.role_service.get_first_by_field('name', role_name)
-            new_user.roles.append(role)
+            if user_data.role_id is not None:
+                role = await self.role_service.get_first_by_field('id', user_data.role_id)
+                new_user.roles.append(role)
+            else:
+                # Assign default role
+                role = await self.role_service.get_first_by_field('name', 'user')
+                new_user.roles.append(role)
 
             return await self.repository.create(new_user)
         except Exception as e:
@@ -146,6 +150,15 @@ class UserService(BaseService):
                     loc=("body", "username",),
                     msg="Username already exists",
                     type="db_error.duplicate",
+                )
+            )
+
+        if user_data.role_id is not None and await self.role_service.get_first_by_field('id', user_data.role_id) is None:
+            validation_errors.append(
+                ValidationErrorSchema(
+                    loc=("body", "role_id",),
+                    msg="Invalid role",
+                    type="db_error.not_found",
                 )
             )
 
