@@ -1,11 +1,12 @@
 import os, logging
 from typing import List
 from logging.handlers import RotatingFileHandler
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError, HTTPException
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from app.modules.core.routers.auth_router import router as auth_router
-from app.error_handlers import validation_exception_handler, http_exception_handler
+from app.error_handlers import validation_exception_handler, http_exception_handler, starlette_http_exception_handler
 from app.schemas import ValidationErrorSchema
 from app.common.response import StandardResponse
 from config import settings
@@ -27,7 +28,8 @@ def create_app():
     app = FastAPI(
         exception_handlers={
             RequestValidationError: validation_exception_handler,
-            HTTPException: http_exception_handler
+            HTTPException: http_exception_handler,
+            StarletteHTTPException: starlette_http_exception_handler,  # Add this line
         },
         responses={
             422: {
@@ -42,5 +44,3 @@ def create_app():
     configure_logging()
 
     return app
-
-app = create_app()

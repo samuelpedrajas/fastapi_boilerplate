@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import EmailStr, constr, validator
+from pydantic import EmailStr, constr, field_validator
 from pydantic_core import PydanticCustomError
 from fastapi import UploadFile, File
 from app.helpers.uploads import validate_file_size
@@ -19,7 +19,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     country_id: int
 
-    @validator('photo')
+    @field_validator('photo')
     def validate_photo(cls, v):
         if v and v.content_type not in ["image/jpeg", "image/png"]:
             raise PydanticCustomError(
@@ -28,7 +28,7 @@ class UserCreate(BaseModel):
             )
         return v
 
-    @validator('photo')
+    @field_validator('photo')
     def validate_photo_size(cls, v):
         max_size = 1024 * 1024 * 20  # 20MB
         if v and not validate_file_size(v.file, max_size):
@@ -41,6 +41,7 @@ class UserCreate(BaseModel):
 
 class UserResponse(BaseModel):
 
+    id: int
     username: constr(min_length=2, max_length=50)
     name: constr(min_length=2, max_length=50)
     surname: constr(min_length=2, max_length=50)

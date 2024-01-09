@@ -1,129 +1,149 @@
 import os
-import unittest
+import pytest
+from sqlalchemy import func
+from sqlmodel import select
+from config import settings
 from unittest import mock
-from flask_testing import TestCase
-from werkzeug.security import check_password_hash
-from app import create_app, db
-from app.models import User
-from config import TestingConfig
-from sqlalchemy.orm import scoped_session, sessionmaker
-from app.models.email_template import EmailTemplate
+from app.helpers.security import encrypt
+from app.modules.core.models.user import User
+from tests.conftest import app, test_client, current_transaction
 
-class TestAuthViews(TestCase):
-    def create_app(self):
-        self.app = create_app(TestingConfig)
-        return self.app
 
-    def setUp(self):
-        self.app = create_app(TestingConfig)
-        self.client = self.app.test_client()
-        self.connection = db.engine.connect()
-        self.transaction = self.connection.begin()
-        self.session = scoped_session(sessionmaker(bind=self.connection))
-        db.session = self.session
-
-    def tearDown(self):
-        db.session.remove()
-        self.transaction.rollback()
-        self.connection.close()
-
-    # Test the register endpoint: success case
-    @mock.patch('app.blueprints.auth.views.send_email')
-    def test_register(self, send_email_mock):
-        # Create a new user, multi-part form data is used to upload the photo
-        with open('tests/integration/files/test_image.png', 'rb') as photo:
-            data = {
-                'username': 'testuser',
-                'password': 'testpassword',
-                'password_confirmation': 'testpassword',
-                'name': 'Test',
-                'surname': 'User',
-                'email': 'test@test.com',
-                'country_id': 1,
-                'photo': (photo, 'test_image.png')
-            }
-            response = self.client.post(
-                self.app.url_for('auth.register'),
-                data=data,
-                content_type='multipart/form-data'
-            )
-
-            # check the response
-            user_id = None
-            if response.json.get('result'):
-                user_id = response.json['result'].get('user_id', None)
-
-            self.assertDictEqual(
-                response.json,
-                {'status': 200, 'message': 'Registration successful', 'result': {'user_id': user_id}}
-            )
-
-            # check the database
-            user = User.query.get(user_id)
-            self.assertEqual(user.username, 'testuser')
-            self.assertTrue(check_password_hash(user.password_hash, 'testpassword'))
-            self.assertEqual(user.name, 'Test')
-            self.assertEqual(user.surname, 'User')
-            self.assertEqual(user.email, 'test@test.com')
-            self.assertEqual(user.country_id, 1)
-            self.assertEqual(user.photo_path, os.path.join(self.app.config['UPLOAD_FOLDER'], 'test_image.png'))
-            self.assertFalse(user.active)
-            self.assertEqual(len(user.roles), 1)
-            self.assertEqual(user.roles[0].name, 'user')
-
-            # check the email
-            send_email_mock.assert_called_once()
-
-            # activate the user
-            confirmation_url = EmailTemplate.generate_confirmation_url(user)
-            response = self.client.get(confirmation_url)
-            self.assertEqual(response.status_code, 200)
-
-            # reload the user
-            user = User.query.get(user_id)
-            self.assertTrue(user.active)
-
-            # check we can't activate the user again
-            response = self.client.get(confirmation_url)
-            self.assertEqual(response.status_code, 400)
-
-            # check we can't create a new user with the same username
-            del data['photo']
-            response = self.client.post(
-                self.app.url_for('auth.register'),
-                data=data,
-                content_type='multipart/form-data'
-            )
-            self.assertEqual(response.status_code, 400)
-
-    # Test the register endpoint: validation error case
-    def test_register_validation_error(self):
-        response = self.client.post(self.app.url_for('auth.register'), data={
-            'username': '',
+@pytest.mark.asyncio
+async def test_register(app, test_client, current_transaction):
+    with mock.patch('app.modules.core.services.email_service.EmailService.send_email') as mock_send_email:
+        data = {
+            'username': 'testuser',
             'password': 'testpassword',
-            'password_confirmation': 'testpassword2',
-            'name': '',
-            'surname': '',
-            'email': '',
-            'country_id': '',
-            'photo_path': '',
-        })
+            'password_confirmation': 'testpassword',
+            'name': 'Test',
+            'surname': 'User',
+            'email': 'test@test.com',
+            'country_id': '1'
+        }
+        with open('tests/integration/files/test_image.png', 'rb') as photo:
+            files = {
+                'photo': (photo.name, photo, 'image/png')  # Provide the file's name and content type
+            }
+
+            response = await test_client.post(app.url_path_for('auth.register'), data=data, files=files)
 
         # check the response
-        self.assertEqual(response.status_code, 400)
-        self.assertDictEqual(response.json, {
-            'status': 400,
-            'message': 'Validation error',
-            'result': {
-                'username': ['This field is required.'],
-                'password_confirmation': ['Password confirmation does not match.'],
-                'name': ['This field is required.'],
-                'surname': ['This field is required.'],
-                'email': ['This field is required.'],
-                'country_id': ['This field is required.']
-            }
-        })
+        assert response.status_code == 200
+
+        json_response = response.json()
+        user_id = json_response.get('result', {}).get('id')
+
+        expected_result = {
+            'country': {
+                'code': 'C1', 'id': 1, 'name': 'Country1'
+            },
+            'email': data['email'],
+            'id': 1,
+            'name': data['name'],
+            'surname': data['surname'],
+            'username': data['username'],
+        }
+        assert response.json() == {'status': 200, 'message': 'Registration successful', 'result': expected_result}
+
+        # Check the database
+        statement = select(User).where(User.id == user_id)
+        user = (await current_transaction.exec(statement)).unique().one()
+        assert user.username == 'testuser'
+        assert user.name == 'Test'
+        assert user.surname == 'User'
+        assert user.email == 'test@test.com'
+        assert user.country_id == 1
+        assert user.photo_path.startswith(settings.UPLOADS_DIR)
+        assert os.path.isfile(user.photo_path)
+        assert not user.active
+        assert len(user.roles) == 1
+        assert user.roles[0].name == 'user'
+
+        # check the email
+        mock_send_email.assert_called_once()
+
+        # activate the user
+        token = encrypt(user_id)
+        confirmation_url = app.url_path_for('auth.confirm') + f'?token={token}'
+        response = await test_client.get(confirmation_url)
+        assert response.status_code == 200
+
+        # reload the user
+        statement = select(User).where(User.id == user_id)
+        user = (await current_transaction.exec(statement)).unique().one()
+        assert user.active
+
+        # check we can't activate the user again
+        response = await test_client.get(confirmation_url)
+        assert response.status_code == 400
+
+        # check we can't create a new user with the same username
+        response = await test_client.post(app.url_path_for('auth.register'), data=data)
+        assert response.status_code == 422
 
 
-if __name__ == '__main__':
-    unittest.main()
+@pytest.mark.asyncio
+async def test_register_validation_error(app, test_client, current_transaction):
+    response = await test_client.post(app.url_path_for('auth.register'), data={
+        'username': '',
+        'password': 'testpassword',
+        'password_confirmation': 'testpassword2',
+        'name': '',
+        'surname': '',
+        'email': '',
+        'country_id': '',
+        'photo': '',
+    })
+
+    # check the database
+    count_query = select(func.count()).select_from(User)
+    user_count = (await current_transaction.exec(count_query)).first()
+
+    assert user_count == 0
+
+    # check the response
+    assert response.status_code == 422
+    assert response.json() == {
+        'status': 422,
+        'message': 'Validation Error',
+        'result': {
+            'detail': [
+                {
+                    'type': 'missing',
+                    'loc': ['body', 'username'],
+                    'msg': 'Field required',
+                    'input': None,
+                    'url': 'https://errors.pydantic.dev/2.5/v/missing'
+                },
+                {
+                    'type': 'missing',
+                    'loc': ['body', 'name'],
+                    'msg': 'Field required',
+                    'input': None,
+                    'url': 'https://errors.pydantic.dev/2.5/v/missing'
+                },
+                {
+                    'type': 'missing',
+                    'loc': ['body', 'surname'],
+                    'msg': 'Field required',
+                    'input': None,
+                    'url': 'https://errors.pydantic.dev/2.5/v/missing'
+                },
+                {
+                    'type': 'missing',
+                    'loc': ['body', 'email'],
+                    'msg': 'Field required',
+                    'input': None,
+                    'url': 'https://errors.pydantic.dev/2.5/v/missing'
+                },
+                {
+                    'type': 'missing',
+                    'loc': ['body', 'country_id'],
+                    'msg': 'Field required',
+                    'input': None,
+                    'url': 'https://errors.pydantic.dev/2.5/v/missing'
+                }
+            ]
+        }
+    }

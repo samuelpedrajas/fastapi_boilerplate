@@ -30,7 +30,7 @@ services:
         UID: ${DOCKER_UID}
         GID: ${DOCKER_GID}
     user: ${DOCKER_UID}:${DOCKER_GID}
-    command: ["sh", "-c", "pip install debugpy -t /tmp && python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]
+    command: ["sh", "-c", "pip install debugpy -t /tmp && python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 -m uvicorn main:app --host 0.0.0.0 --port ${FASTAPI_RUN_PORT} --reload"]
     volumes:
       - .:/app
     ports:

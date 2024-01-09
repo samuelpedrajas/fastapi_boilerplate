@@ -1,12 +1,14 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel
-from config import settings
+from config import settings, current_env
 
-engine = create_async_engine(settings.sqlalchemy_database_url)
+
+sqlalchemy_database_url = settings.sqlalchemy_test_database_url if current_env == "testing" else settings.sqlalchemy_database_url
+async_engine = create_async_engine(sqlalchemy_database_url)
 metadata = SQLModel.metadata
-sqlalchemy_database_url = settings.sqlalchemy_database_url
+
 
 async def get_db():
-    async with AsyncSession(engine) as session:
+    async with AsyncSession(async_engine) as session:
         yield session
