@@ -68,7 +68,7 @@ DEFAULT_EMAIL_TEMPLATES_EMAIL_VARIABLES = [
 ]
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 async def async_engine():
     async_engine = create_async_engine(settings.sqlalchemy_test_database_url, poolclass=NullPool)
 
@@ -77,7 +77,7 @@ async def async_engine():
     await async_engine.dispose()
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 async def setup_db(async_engine):
     async with async_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
@@ -95,7 +95,7 @@ async def setup_db(async_engine):
         await conn.run_sync(SQLModel.metadata.drop_all)
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 async def clean_up_uploads():
     yield
 
