@@ -2,6 +2,7 @@ import aiofiles
 from typing import Any, List
 from datetime import datetime, timedelta
 from fastapi import Depends
+from sqlalchemy import Select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from app.common.base_service import BaseService
@@ -168,6 +169,12 @@ class UserService(BaseService):
         validation_errors = await self.validate_data_base(user_data)
 
         return validation_errors
+
+    async def get_paginated(self, page: int, per_page: int) -> List[UserResponse]:
+        users = await self.repository.paginate(Select(User) ,page, per_page)
+        users['items'] = [self.get_user_response_from_user(user) for user in users['items']]
+        return users
+
 
 def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
     return UserService(UserRepository(db), get_role_service(db), get_country_service(db))

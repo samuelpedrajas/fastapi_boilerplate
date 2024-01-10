@@ -1,9 +1,12 @@
 from typing import Type, TypeVar, Generic, List, Tuple, Any
-from sqlmodel import SQLModel, select, and_, or_
+from sqlmodel import SQLModel, select, and_, or_, func
 from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import Select
+from app.common.paginator import Paginator
 
 
 T = TypeVar('T', bound=SQLModel)
+
 
 class BaseRepository(Generic[T]):
     def __init__(self, db: AsyncSession, model: Type[T]):
@@ -56,3 +59,6 @@ class BaseRepository(Generic[T]):
         await self.db.delete(obj)
         await self.db.commit()
 
+    async def paginate(self, query: Select, page: int, per_page: int) -> dict:
+        paginator = Paginator(self.db, query, page, per_page)
+        return await paginator.get_response()

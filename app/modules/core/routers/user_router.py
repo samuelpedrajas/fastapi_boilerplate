@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, UploadFile, Form, File
+from fastapi import APIRouter, Depends, Query, UploadFile, Form, File
 from app.modules.core.models.user import User
 from app.modules.core.schemas.user_schemas import UserCreate, UserResponse, UserUpdate
 from app.modules.core.services.user_service import UserService, get_user_service
 from app.modules.core.services.auth_service import has_permission
 from app.common.response import standard_response, StandardResponse
+from app.common.paginator import PaginatedResponse
 
 
 router = APIRouter()
@@ -103,3 +104,18 @@ async def post_user(
         user = await user_service.create_user(user_data, True)
         user_response = user_service.get_user_response_from_user(user)
         return standard_response(200, None, user_response)
+
+
+@router.get(
+    '/admin/users',
+    response_model=PaginatedResponse[UserResponse],
+    tags=["Users"]
+)
+async def get_todos(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(100, ge=0),
+    current_user: User = Depends(has_permission("admin")),
+    user_service: UserService = Depends(get_user_service)
+):
+    paginated_results = await user_service.get_paginated(page, per_page)
+    return standard_response(200, None, paginated_results)

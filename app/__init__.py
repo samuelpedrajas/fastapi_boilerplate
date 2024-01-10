@@ -10,22 +10,14 @@ from app.modules.core.routers.user_router import router as user_router
 from app.error_handlers import validation_exception_handler, http_exception_handler, starlette_http_exception_handler
 from app.schemas import ValidationErrorSchema
 from app.common.response import StandardResponse
+from app.middlewares import middlewares
 from config import settings
-
-
-def configure_logging():
-    log_file = os.getenv('LOG_FILE', settings.LOG_FILE)
-    log_level = os.getenv('LOG_LEVEL', logging.INFO)
-    file_handler = RotatingFileHandler(log_file, maxBytes=104857600, backupCount=10)
-    file_handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-    ))
-    file_handler.setLevel(log_level)
-    logging.getLogger().addHandler(file_handler)
 
 
 def create_app():
     load_dotenv()
+
+    # create app
     app = FastAPI(
         exception_handlers={
             RequestValidationError: validation_exception_handler,
@@ -38,11 +30,21 @@ def create_app():
                 "model": StandardResponse[List[ValidationErrorSchema]],
             },
         },
+        middleware=middlewares
     )
 
+    # include routers
     app.include_router(auth_router, prefix='/v1')
     app.include_router(user_router, prefix='/v1')
 
-    configure_logging()
+    # configure logging
+    log_file = os.getenv('LOG_FILE', settings.LOG_FILE)
+    log_level = os.getenv('LOG_LEVEL', logging.INFO)
+    file_handler = RotatingFileHandler(log_file, maxBytes=104857600, backupCount=10)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    ))
+    file_handler.setLevel(log_level)
+    logging.getLogger().addHandler(file_handler)
 
     return app
