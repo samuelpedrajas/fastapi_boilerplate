@@ -114,7 +114,7 @@ class UserService(BaseService):
         return False        
 
     def get_user_response_from_user(self, user: User) -> UserResponse:
-        # Note: Slight coupling between service and repository
+        # await self.repository.ensure_relationships_loaded(user, ["country"])
         user_data = user.model_dump()
         user_data["country"] = user.country.model_dump()
         return UserResponse.model_validate(user_data)

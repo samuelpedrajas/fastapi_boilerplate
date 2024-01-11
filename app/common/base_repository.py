@@ -1,7 +1,7 @@
 from typing import Type, TypeVar, Generic, List, Tuple, Any
 from sqlmodel import SQLModel, select, and_, or_, func
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy import Select
+from sqlalchemy import Select, inspect
 from app.common.paginator import Paginator
 
 
@@ -62,3 +62,16 @@ class BaseRepository(Generic[T]):
     async def paginate(self, query: Select, page: int, per_page: int) -> dict:
         paginator = Paginator(self.db, query, page, per_page)
         return await paginator.get_response()
+
+    async def ensure_relationships_loaded(self, instance: T, relationships: List[str]):
+        for relationship in relationships:
+            nested_relationships = relationship.split('.')
+            current_instance = instance
+            for rel_name in nested_relationships:
+                if not rel_name not in inspect(instance).unloaded:
+                    await self.db.refresh(
+                        current_instance,
+                        [rel_name],
+                        with_for_update=False
+                    )
+                current_instance = getattr(current_instance, rel_name)
