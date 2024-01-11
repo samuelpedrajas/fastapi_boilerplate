@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query, UploadFile, Form, File
+from fastapi.exceptions import ValidationException
 from app.modules.core.models.user import User
 from app.modules.core.schemas.user_schemas import UserCreate, UserResponse, UserUpdate
 from app.modules.core.services.user_service import UserService, get_user_service
@@ -48,7 +49,7 @@ async def put_user(
             country_id=country_id,
             photo=photo
         )
-    except Exception as e:
+    except ValidationException as e:
         return standard_response(422, "Validation error", e.errors())
 
     validation_errors = await user_service.validate_data_update(user_data)

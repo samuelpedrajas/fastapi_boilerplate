@@ -1,5 +1,6 @@
 import logging
 from fastapi import APIRouter, Depends, Request, UploadFile, Form, File
+from fastapi.exceptions import ValidationException
 from fastapi.templating import Jinja2Templates
 from app.modules.core.models.user import User
 from app.modules.core.schemas.auth_schemas import Token, LoginForm
@@ -43,7 +44,7 @@ async def register(
             country_id=country_id,
             photo=photo
         )
-    except Exception as e:
+    except ValidationException as e:
         return standard_response(422, "Validation error", e.errors())
 
     validation_errors = await auth_service.user_service.validate_data_create(user_data)

@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import EmailStr, constr, field_validator, validator
+from pydantic import EmailStr, constr, field_validator
 from pydantic_core import PydanticCustomError
 from fastapi import UploadFile, File
 from app.helpers.uploads import validate_file_size
@@ -9,7 +9,6 @@ from config import settings
 
 
 class UserBase(BaseModel):
-
     photo: Optional[UploadFile] = File(None)
 
     @field_validator('photo')
@@ -42,9 +41,9 @@ class UserCreate(UserBase):
     country_id: int
     role_id: Optional[int] = None
 
-    @validator('password_confirmation')
+    @field_validator('password_confirmation')
     def check_passwords_match(cls, v, values, **kwargs):
-        if 'password' in values and v != values['password']:
+        if 'password' in values.data and v != values.data['password']:
             raise PydanticCustomError(
                 'password_mismatch',
                 'Password and password_confirmation do not match.'
