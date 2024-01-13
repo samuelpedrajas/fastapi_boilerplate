@@ -53,7 +53,7 @@ class AuthService:
         return False
 
     async def authenticate_user(self, username: str, password: str):
-        user = await self.user_service.get_first_by_field('username', username)
+        user = await self.user_service.get_first_by_field('username', username, relationships_to_load=['roles', 'roles.permissions'])
         if not user or not verify_password(password, user.password_hash) or not user.active:
             return None
         return user
@@ -82,7 +82,7 @@ class AuthService:
                 raise UnauthorizedException()
         except JWTError:
             raise UnauthorizedException()
-        user = await self.user_service.get_first_by_field('id', user_id)
+        user = await self.user_service.get_first_by_field('id', user_id, relationships_to_load=['roles', 'roles.permissions'])
         if user is None:
             raise UnauthorizedException()
         return user

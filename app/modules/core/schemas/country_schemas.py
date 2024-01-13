@@ -1,4 +1,4 @@
-from app.schemas import BaseModel
+from pydantic import BaseModel
 
 
 class CountryResponse(BaseModel):

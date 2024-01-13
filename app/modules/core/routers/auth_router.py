@@ -55,7 +55,7 @@ async def register(
     try:
         confirmation_url = str(request.url_for("auth.confirm"))
         user = await auth_service.register(user_data, confirmation_url)
-        user_response = auth_service.user_service.get_user_response_from_user(user)
+        user_response = await auth_service.user_service.get_user_response_from_user(user)
         return standard_response(200, "Registration successful", user_response)
     except Exception as e:
         raise e
@@ -115,5 +115,5 @@ async def me(
     current_user: User = Depends(has_permission("base")),
     user_service: UserService = Depends(get_user_service)
 ):
-    response_user = user_service.get_user_response_from_user(current_user)
+    response_user = await user_service.get_user_response_from_user(current_user)
     return standard_response(200, None, response_user)

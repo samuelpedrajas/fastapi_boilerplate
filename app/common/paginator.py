@@ -1,7 +1,7 @@
 from pydantic import AnyHttpUrl, Field, BaseModel
-from typing import Optional, Generic, TypeVar, List
+from typing import Optional, Generic, Type, TypeVar, List
 from sqlalchemy import Select
-from sqlmodel import select, func
+from sqlmodel import distinct, select, func
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.middlewares import request_object
 
@@ -10,7 +10,7 @@ M = TypeVar('M')
 
 
 class Paginator:
-    def __init__(self, db: AsyncSession, query: Select, page: int, per_page: int):
+    def __init__(self, db: AsyncSession, query: Select, page: int, per_page: int, primary_entity: Type[BaseModel]):
         self.db = db
         self.query = query
         self.page = page
@@ -21,6 +21,7 @@ class Paginator:
         self.number_of_pages = 0
         self.next_page = ''
         self.previous_page = ''
+        self.primary_entity = primary_entity
 
     def _get_next_page(self) -> Optional[str]:
         if self.page >= self.number_of_pages:
@@ -37,6 +38,7 @@ class Paginator:
     async def get_response(self) -> dict:
         return {
             'count': await self._get_total_count(),
+            'number_of_pages': self.number_of_pages,
             'next_page': self._get_next_page(),
             'previous_page': self._get_previous_page(),
             'items': [todo for todo in (await self.db.scalars(self.query.limit(self.limit).offset(self.offset))).unique()]
@@ -47,11 +49,14 @@ class Paginator:
         quotient = count // self.per_page
         return quotient if not rest else quotient + 1
 
+
     async def _get_total_count(self) -> int:
-        count = await self.db.scalar(select(func.count()).select_from(self.query.subquery()))
+        primary_key = self.primary_entity.__table__.primary_key.columns.values()[0]
+        subquery = self.query.subquery()
+        count_query = select(func.count(distinct(subquery.c[primary_key.name])))
+        count = await self.db.scalar(count_query)
         self.number_of_pages = self._get_number_of_pages(count)
         return count
-
 
 class PaginatedResponse(BaseModel, Generic[M]):
     count: int = Field(description='Number of total items')

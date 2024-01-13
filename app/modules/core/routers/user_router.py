@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, UploadFile, Form, File
 from fastapi.exceptions import ValidationException
 from app.modules.core.models.user import User
-from app.modules.core.schemas.user_schemas import UserCreate, UserResponse, UserUpdate
+from app.modules.core.schemas.user_schemas import UserCreate, UserResponse, UserUpdate, UserFilters
 from app.modules.core.services.user_service import UserService, get_user_service
 from app.modules.core.services.auth_service import has_permission
 from app.common.response import standard_response, StandardResponse
@@ -21,7 +21,7 @@ async def get_user(
     user_service: UserService = Depends(get_user_service)
 ):
     user = await user_service.get_first_by_field('id', user_id)
-    user_response = user_service.get_user_response_from_user(user)
+    user_response = await user_service.get_user_response_from_user(user)
     return standard_response(200, None, user_response)
 
 
@@ -59,7 +59,7 @@ async def put_user(
 
     user = await user_service.get_first_by_field('id', user_id)
     user = await user_service.update_user(user, user_data)
-    user_response = user_service.get_user_response_from_user(user)
+    user_response = await user_service.get_user_response_from_user(user)
     return standard_response(200, None, user_response)
 
 
@@ -103,7 +103,7 @@ async def post_user(
             return standard_response(422, "Validation error", validation_errors)
 
         user = await user_service.create_user(user_data, True)
-        user_response = user_service.get_user_response_from_user(user)
+        user_response = await user_service.get_user_response_from_user(user)
         return standard_response(200, None, user_response)
 
 
@@ -112,11 +112,12 @@ async def post_user(
     response_model=PaginatedResponse[UserResponse],
     tags=["Users"]
 )
-async def get_todos(
+async def get_users(
     page: int = Query(1, ge=1),
     per_page: int = Query(100, ge=0),
+    user_filters: UserFilters = Depends(),
     current_user: User = Depends(has_permission("admin")),
     user_service: UserService = Depends(get_user_service)
 ):
-    paginated_results = await user_service.get_paginated(page, per_page)
+    paginated_results = await user_service.get_filtered(user_filters, page, per_page)
     return standard_response(200, None, paginated_results)

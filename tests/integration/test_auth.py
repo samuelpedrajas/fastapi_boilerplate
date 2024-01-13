@@ -1,6 +1,7 @@
 import os
 import pytest
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from config import settings
 from unittest import mock
@@ -47,7 +48,7 @@ async def test_register(app, test_client, current_transaction):
         assert response.json() == {'status': 200, 'message': 'Registration successful', 'result': expected_result}
 
         # Check the database
-        statement = select(User).where(User.id == user_id)
+        statement = select(User).options(selectinload(User.roles)).where(User.id == user_id)
         user = (await current_transaction.exec(statement)).unique().one()
         assert user.username == 'testuser'
         assert user.name == 'Test'

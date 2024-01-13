@@ -1,14 +1,14 @@
-from typing import Optional
-from pydantic import EmailStr, constr, field_validator
+from typing import Dict, Optional, Tuple
+from pydantic import EmailStr, constr, field_validator, BaseModel as BaseSchema
 from pydantic_core import PydanticCustomError
 from fastapi import UploadFile, File
 from app.helpers.uploads import validate_file_size
 from app.modules.core.schemas.country_schemas import CountryResponse
-from app.schemas import BaseModel
-from config import settings
+from app.common.filtering import BaseFiltering, FilterConfig, enhanced_ilike, equals
+from app.modules.core.models.user import User
 
 
-class UserBase(BaseModel):
+class UserBase(BaseSchema):
     photo: Optional[UploadFile] = File(None)
 
     @field_validator('photo')
@@ -58,10 +58,48 @@ class UserUpdate(UserBase):
     country_id: int
 
 
-class UserResponse(BaseModel):
+class UserResponse(BaseSchema):
     id: int
     username: constr(min_length=2, max_length=50)
     name: constr(min_length=2, max_length=50)
     surname: constr(min_length=2, max_length=50)
     email: EmailStr
     country: Optional[CountryResponse] = None
+
+
+class UserFilters(BaseFiltering):
+    full_name: Optional[str] = None
+    username: Optional[str] = None
+    email: Optional[str] = None
+    country_id: Optional[int] = None
+    country__name: Optional[str] = None
+    roles__id: Optional[int] = None
+    roles__name: Optional[str] = None
+
+    def filters_config(self) ->  Tuple[User, Dict[str, FilterConfig]]:
+        return User, {
+            'full_name': FilterConfig(
+                model_fields=['name', 'surname'],
+                comparison=enhanced_ilike,
+            ),
+            'email': FilterConfig(
+                model_fields=['email'],
+                comparison=enhanced_ilike,
+            ),
+            'country_id': FilterConfig(
+                model_fields=['country_id'],
+                comparison=equals,
+            ),
+            'country__name': FilterConfig(
+                model_fields=['country.name'],
+                comparison=enhanced_ilike,
+            ),
+            'roles__id': FilterConfig(
+                model_fields=['roles.id'],
+                comparison=equals,
+            ),
+            'roles__name': FilterConfig(
+                model_fields=['roles.name'],
+                comparison=enhanced_ilike,
+            )
+        }

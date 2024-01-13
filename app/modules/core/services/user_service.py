@@ -7,9 +7,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from app.common.base_service import BaseService
 from app.modules.core.models.user import User
-from app.modules.core.schemas.user_schemas import UserBase, UserCreate, UserUpdate
+from app.modules.core.schemas.user_schemas import UserBase, UserCreate, UserUpdate, UserResponse, UserFilters
 from app.modules.core.repositories.user_repository import UserRepository
-from app.modules.core.schemas.user_schemas import UserResponse
 from app.modules.core.services.role_service import RoleService, get_role_service
 from app.modules.core.services.country_service import CountryService, get_country_service
 from app.helpers.security import get_password_hash
@@ -113,8 +112,8 @@ class UserService(BaseService):
 
         return False        
 
-    def get_user_response_from_user(self, user: User) -> UserResponse:
-        # await self.repository.ensure_relationships_loaded(user, ["country"])
+    async def get_user_response_from_user(self, user: User) -> UserResponse:
+        await self.repository.ensure_relationships_loaded(user, ["country"])
         user_data = user.model_dump()
         user_data["country"] = user.country.model_dump()
         return UserResponse.model_validate(user_data)
@@ -170,9 +169,11 @@ class UserService(BaseService):
 
         return validation_errors
 
-    async def get_paginated(self, page: int, per_page: int) -> List[UserResponse]:
-        users = await self.repository.paginate(Select(User) ,page, per_page)
-        users['items'] = [self.get_user_response_from_user(user) for user in users['items']]
+
+    async def get_filtered(self, user_filters: UserFilters, page: int, per_page: int) -> List[UserResponse]:
+        query = user_filters.apply_filters()
+        users = await self.repository.paginate(query, page, per_page)
+        users['items'] = [await self.get_user_response_from_user(user) for user in users['items']]
         return users
 
 
