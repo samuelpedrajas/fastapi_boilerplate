@@ -82,3 +82,55 @@ async def test_get_user(app, test_client, current_transaction, setup_db):
         },
     }
     assert json_response == {'status': 200, 'message': None, 'result': expected_result}
+
+
+@pytest.mark.asyncio
+async def test_put_user(app, test_client, current_transaction, setup_db):
+    user = (
+        await current_transaction.exec(
+            select(User)
+                .options(selectinload(User.roles))
+                .where(User.id == DEFAULT_USER[0]['id'])
+        )
+    ).unique().one()
+    token = get_access_token(user)
+    data = {
+        'name': 'Test2',
+        'surname': 'User2',
+        'email': 'test2@test.com',
+        'country_id': 2,
+    }
+
+    response = await test_client.put(
+        app.url_path_for('user.put_user', user_id=user.id),
+        headers={'Authorization': f'Bearer {token}'},
+        data=data
+    )
+
+    # check the response
+    assert response.status_code == 200
+
+    json_response = response.json()
+    expected_result = {
+        'id': user.id,
+        'username': user.username,
+        'name': data['name'],
+        'surname': data['surname'],
+        'email': data['email'],
+        'country': {
+            'id': 2,
+            'name': DEFAULT_COUNTRIES[1]['name'],
+            'code': DEFAULT_COUNTRIES[1]['code']
+        },
+    }
+
+    assert json_response == {'status': 200, 'message': None, 'result': expected_result}
+
+    # Check the database
+    statement = select(User).where(User.id == user.id)
+    user = (await current_transaction.exec(statement)).unique().one()
+
+    assert user.name == data['name']
+    assert user.surname == data['surname']
+    assert user.email == data['email']
+    assert user.country_id == data['country_id']

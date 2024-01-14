@@ -29,6 +29,7 @@ async def get_user(
 @router.put(
     "/admin/users/{user_id}",
     response_model=StandardResponse[UserResponse],
+    name="user.put_user",
     tags=["Users"]
 )
 async def put_user(
