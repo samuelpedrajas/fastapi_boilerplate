@@ -122,7 +122,7 @@ async def test_client(app):
 
 
 @pytest.fixture(scope="function")
-async def current_transaction(async_engine, app):
+async def current_transaction(async_engine, app, setup_db):
     async_session = sessionmaker(async_engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
         # mock the commit method to flush instead

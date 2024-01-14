@@ -31,29 +31,27 @@ DEFAULT_USER = [
 ]
 
 
-@pytest.fixture(scope="module", autouse=True)
-async def setup_db(async_engine, setup_db):
-    async with async_engine.begin() as conn:
-        stmt = insert(User).values(DEFAULT_USER).returning(User.id)
-        result = await conn.execute(stmt)
-        user_ids = [row[0] for row in result.fetchall()]
-        user_id = user_ids[0]
-        DEFAULT_USER[0]['id'] = user_id
+@pytest.fixture(scope="function")
+async def setup_db(async_engine, current_transaction):
+    stmt = insert(User).values(DEFAULT_USER).returning(User.id)
+    result = await current_transaction.exec(stmt)
+    user_id = result.fetchall()[0][0]
+    DEFAULT_USER[0]['id'] = user_id
 
-        stmt = select(Role.id).where(Role.name == 'admin')
-        result = await conn.execute(stmt)
-        role_id = result.fetchone()[0]
+    stmt = select(Role.id).where(Role.name == 'admin')
+    result = await current_transaction.exec(stmt)
+    role_id = result.fetchall()[0]
 
-        await conn.execute(
-            insert(UserRole),
-            {'user_id': user_id, 'role_id': role_id}
-        )
+    stmt = insert(UserRole).values(
+        {'user_id': user_id, 'role_id': role_id}
+    )
+    await current_transaction.exec(stmt)
 
     yield
 
 
 @pytest.mark.asyncio
-async def test_get_user(app, test_client, current_transaction):
+async def test_get_user(app, test_client, current_transaction, setup_db):
     user = (
         await current_transaction.exec(
             select(User)
