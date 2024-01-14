@@ -7,7 +7,7 @@ from config import settings
 from unittest import mock
 from app.helpers.security import encrypt
 from app.modules.core.models.user import User
-from tests.conftest import app, test_client, current_transaction
+from tests.conftest import app, test_client, current_transaction, DEFAULT_COUNTRIES
 
 
 @pytest.mark.asyncio
@@ -20,7 +20,7 @@ async def test_register(app, test_client, current_transaction):
             'name': 'Test',
             'surname': 'User',
             'email': 'test@test.com',
-            'country_id': '1'
+            'country_id': 1
         }
         with open('tests/integration/files/test_image.png', 'rb') as photo:
             files = {
@@ -37,10 +37,12 @@ async def test_register(app, test_client, current_transaction):
 
         expected_result = {
             'country': {
-                'code': 'C1', 'id': 1, 'name': 'Country1'
+                'code': DEFAULT_COUNTRIES[0]['code'],
+                'id': 1,
+                'name': DEFAULT_COUNTRIES[0]['name']
             },
             'email': data['email'],
-            'id': 1,
+            'id': user_id,
             'name': data['name'],
             'surname': data['surname'],
             'username': data['username'],

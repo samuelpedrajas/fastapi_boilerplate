@@ -10,10 +10,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 from config import settings
-from app.modules.core.models.user import Country, Role, Permission, RolePermission
+from app.modules.core.models.user import Country, Role, Permission, RolePermission, User
 from app.modules.core.models.email_template import EmailTemplate, EmailTemplateEmailVariable, EmailVariable
 from app.common.db import get_db
 from app import create_app
+from app.modules.core.services.auth_service import AuthService
 
 
 # Define the default data
@@ -135,3 +136,7 @@ async def current_transaction(async_engine, app):
         async with session.begin() as transaction:
             yield session
             await transaction.rollback()
+
+
+def get_access_token(user: User):
+    return AuthService.create_access_token(user)

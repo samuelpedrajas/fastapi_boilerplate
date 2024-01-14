@@ -58,7 +58,8 @@ class AuthService:
             return None
         return user
 
-    def create_access_token(self, user: User) -> str:
+    @classmethod
+    def create_access_token(cls, user: User) -> str:
         token_life = settings.JWT_ACCESS_TOKEN_EXPIRE_DAYS
         expire = datetime.utcnow() + timedelta(days=token_life)
         to_encode = {
@@ -71,7 +72,7 @@ class AuthService:
             "active": user.active,
             "exp": expire,
         }
-        encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=self.ALGORITHM)
+        encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=cls.ALGORITHM)
         return encoded_jwt
 
     async def get_current_user(self, token: str):

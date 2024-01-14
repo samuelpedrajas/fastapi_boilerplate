@@ -13,6 +13,7 @@ router = APIRouter()
 @router.get(
     "/admin/users/{user_id}",
     response_model=StandardResponse[UserResponse],
+    name="user.get_user",
     tags=["Users"]
 )
 async def get_user(
