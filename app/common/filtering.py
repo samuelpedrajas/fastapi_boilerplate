@@ -28,7 +28,7 @@ class BaseFiltering(BaseSchema):
                     # Handle multiple fields (e.g., concatenating fields)
                     fields = []
                     for model_field in filter_config.model_fields:
-                        field, is_relationship = self.resolve_field(model, model_field)
+                        field = self.resolve_field(model, model_field)
                         fields.append(field)
                     condition = filter_config.comparison(fields, value)
                     conditions.append(condition)
@@ -59,7 +59,6 @@ class BaseFiltering(BaseSchema):
     def resolve_field(self, model, field_path: str):
         field_parts = field_path.split('.')
         current_model = model
-        is_relationship = False
 
         for part in field_parts:
             if hasattr(current_model, part):
@@ -67,14 +66,13 @@ class BaseFiltering(BaseSchema):
                 if hasattr(field, 'property') and hasattr(field.property, 'mapper'):
                     # It's a relationship; switch to related model
                     current_model = field.property.mapper.class_
-                    is_relationship = True
                 else:
                     # It's a direct field
                     current_model = field
             else:
                 raise AttributeError(f"Field or relationship '{part}' not found in {current_model.__name__}")
 
-        return current_model, is_relationship
+        return current_model
 
     def filters_config(self) -> Tuple[BaseModel, Dict[str, FilterConfig]]:
         raise NotImplementedError  # Override in subclass
