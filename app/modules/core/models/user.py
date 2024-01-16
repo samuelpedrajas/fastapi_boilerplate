@@ -1,68 +1,60 @@
-from datetime import datetime
-from typing import Optional, List
-from sqlmodel import Field, Relationship
-from app.common.db import metadata
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
 from app.common.base_model import BaseModel
 
 
-class Country(BaseModel, table=True, target_metadata=metadata):
+class Country(BaseModel):
     __tablename__ = "countries"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    code: str
-    name: str
+    code = Column(String)
+    name = Column(String)
 
-    users: List["User"] = Relationship(back_populates="country")
+    users = relationship("User", back_populates="country")
 
 
-class RolePermission(BaseModel, table=True, target_metadata=metadata):
+class RolePermission(BaseModel):
     __tablename__ = "roles_permissions"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    role_id: int = Field(foreign_key="roles.id")
-    permission_id: int = Field(foreign_key="permissions.id")
+    role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True)
+    permission_id = Column(Integer, ForeignKey('permissions.id'), primary_key=True)
 
 
-class Permission(BaseModel, table=True, target_metadata=metadata):
+class Permission(BaseModel):
     __tablename__ = "permissions"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str
+    name = Column(String)
 
-    roles: List["Role"] = Relationship(back_populates="permissions", link_model=RolePermission)
-
-
-class UserRole(BaseModel, table=True, target_metadata=metadata):
-    __tablename__ = "users_roles"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="users.id")
-    role_id: int = Field(foreign_key="roles.id")
+    roles = relationship("Role", secondary="roles_permissions", back_populates="permissions")
 
 
-class Role(BaseModel, table=True, target_metadata=metadata):
+class Role(BaseModel):
     __tablename__ = "roles"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str
+    name = Column(String)
 
-    permissions: List[Permission] = Relationship(back_populates="roles", link_model=RolePermission)
-    users: List["User"] = Relationship(back_populates="roles", link_model=UserRole)
+    permissions = relationship("Permission", secondary="roles_permissions", back_populates="roles")
+    users = relationship("User", secondary="users_roles", back_populates="roles")
 
 
-class User(BaseModel, table=True, target_metadata=metadata):
+class UserRole(BaseModel):
+    __tablename__ = "users_roles"
+
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True)
+
+
+class User(BaseModel):
     __tablename__ = "users"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    username: str = Field(max_length=50)
-    password_hash: str  # Length depends on hash algorithm
-    name: Optional[str] = Field(default=None, max_length=50)
-    surname: Optional[str] = Field(default=None, max_length=50)
-    email: str = Field(max_length=255)  # Adjust max_length as needed
-    country_id: int = Field(foreign_key="countries.id")
-    photo_path: Optional[str] = None
-    active: bool = False
-    deleted_at: Optional[datetime] = None
+    username = Column(String(50))
+    password_hash = Column(String) # The length will depend on the hashing algorithm used
+    name = Column(String(50), nullable=True)
+    surname = Column(String(50), nullable=True)
+    email = Column(String(255))
+    country_id = Column(Integer, ForeignKey('countries.id'), nullable=True)
+    photo_path = Column(String, nullable=True)
+    active = Column(Boolean, default=False)
+    deleted_at = Column(DateTime, nullable=True)
 
-    country: Optional[Country] = Relationship(back_populates="users")
-    roles: List[Role] = Relationship(back_populates="users", link_model=UserRole)
+    country = relationship("Country", back_populates="users")
+    roles = relationship("Role", secondary="users_roles", back_populates="users")

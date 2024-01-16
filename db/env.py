@@ -1,12 +1,14 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import create_engine
+from sqlalchemy import MetaData, create_engine
 
-from app.common.db import metadata, sqlalchemy_database_url
+from app.common.db import sqlalchemy_database_url
 from config import settings
 
+
 engine = create_engine(settings.sqlalchemy_database_url.replace('+asyncpg', ''))
+metadata = MetaData()
 
 
 # this is the Alembic Config object, which provides

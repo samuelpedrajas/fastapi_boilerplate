@@ -1,5 +1,5 @@
 from app.common.base_repository import BaseRepository
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from app.modules.core.models.user import Country
 
 class CountryRepository(BaseRepository):

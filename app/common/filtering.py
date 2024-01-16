@@ -1,9 +1,8 @@
 from typing import Any, Callable, Dict, List, Tuple
 from fastapi import Query
 from pydantic import BaseModel as BaseSchema
-from sqlalchemy import AliasedReturnsRows, Select, func
+from sqlalchemy import AliasedReturnsRows, Select, and_, func
 from sqlalchemy.orm import aliased
-from sqlmodel import and_
 from app.common.base_model import BaseModel
 
 

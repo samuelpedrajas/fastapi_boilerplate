@@ -1,34 +1,34 @@
-from datetime import datetime
-from typing import Optional, List
-from sqlmodel import Field, Relationship
+from sqlalchemy import Column, Integer, ForeignKey, String
+from sqlalchemy.orm import relationship
 from app.common.base_model import BaseModel
 
-class EmailTemplateEmailVariable(BaseModel, table=True):
+
+class EmailTemplateEmailVariable(BaseModel):
     __tablename__ = "email_templates_email_variables"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    email_template_id: int = Field(foreign_key="email_templates.id")
-    email_variable_id: int = Field(foreign_key="email_variables.id")
+    email_template_id = Column(Integer, ForeignKey('email_templates.id'), primary_key=True)
+    email_variable_id = Column(Integer, ForeignKey('email_variables.id'), primary_key=True)
 
 
-class EmailVariable(BaseModel, table=True):
+
+class EmailVariable(BaseModel):
     __tablename__ = 'email_variables'
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    variable: str
-    description: Optional[str] = None
+    variable = Column(String)
+    description = Column(String, nullable=True)
 
-    email_templates: List["EmailTemplate"] = Relationship(back_populates="email_variables", link_model=EmailTemplateEmailVariable)
+    email_templates = relationship("EmailTemplate", 
+                                   secondary="email_templates_email_variables",
+                                   back_populates="email_variables")
 
-
-class EmailTemplate(BaseModel, table=True):
+class EmailTemplate(BaseModel):
     __tablename__ = 'email_templates'
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str
-    subject: str
-    html_body: str
+    name = Column(String)
+    subject = Column(String)
+    html_body = Column(String)
 
-    email_variables: List[EmailVariable] = Relationship(back_populates="email_templates",
-                                                        link_model=EmailTemplateEmailVariable,
-                                                        sa_relationship_kwargs={'lazy': 'joined'})
+    email_variables = relationship("EmailVariable", 
+                                   secondary="email_templates_email_variables",
+                                   back_populates="email_templates",
+                                   lazy='joined')

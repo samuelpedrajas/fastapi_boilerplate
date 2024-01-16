@@ -1,5 +1,5 @@
 from fastapi import Depends
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from app.common.base_service import BaseService
 from app.modules.core.repositories.role_repository import RoleRepository
 from app.common.db import get_db

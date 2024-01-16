@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, Query, UploadFile, Form, File
 from fastapi.exceptions import ValidationException
 from app.modules.core.models.user import User
@@ -68,6 +69,7 @@ async def put_user(
 @router.post(
     "/admin/users",
     response_model=StandardResponse[UserResponse],
+    name="user.post_user",
     tags=["Users"]
 )
 async def post_user(
@@ -79,7 +81,7 @@ async def post_user(
     email: str = Form(...),
     country_id: int = Form(...),
     photo: UploadFile = File(None),
-    role_id: str = Form(None),
+    role_ids: List[int] = Form([]),
     current_user: User = Depends(has_permission("admin")),
     user_service: UserService = Depends(get_user_service)
 ):
@@ -94,7 +96,7 @@ async def post_user(
                 email=email,
                 country_id=country_id,
                 photo=photo,
-                role_id=role_id
+                role_ids=role_ids
             )
         except Exception as e:
             return standard_response(422, "Validation error", e.errors())

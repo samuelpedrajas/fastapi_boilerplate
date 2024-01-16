@@ -1,8 +1,11 @@
-
 from datetime import datetime
-from sqlmodel import SQLModel, Field
+from sqlalchemy import Column, Integer, DateTime
+from app.common.db import Base
 
 
-class BaseModel(SQLModel):
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
+class BaseModel(Base):
+    __abstract__ = True
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

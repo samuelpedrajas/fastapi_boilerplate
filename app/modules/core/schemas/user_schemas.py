@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from pydantic import EmailStr, constr, field_validator, BaseModel as BaseSchema
 from pydantic_core import PydanticCustomError
 from fastapi import UploadFile, File
@@ -39,7 +39,7 @@ class UserCreate(UserBase):
     surname: constr(min_length=2, max_length=50)
     email: EmailStr
     country_id: int
-    role_id: Optional[int] = None
+    role_ids: Optional[List[int]] = []
 
     @field_validator('password_confirmation')
     def check_passwords_match(cls, v, values, **kwargs):

@@ -1,5 +1,5 @@
 from fastapi import Depends
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from app.common.base_service import BaseService
 from app.modules.core.models.email_template import EmailTemplate
 from app.modules.core.repositories.email_template_repository import EmailTemplateRepository

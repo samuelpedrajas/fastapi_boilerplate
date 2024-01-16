@@ -1,8 +1,7 @@
 import os
 import pytest
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
-from sqlmodel import select
 from config import settings
 from unittest import mock
 from app.helpers.security import encrypt
@@ -51,7 +50,7 @@ async def test_register(app, test_client, current_transaction):
 
         # Check the database
         statement = select(User).options(selectinload(User.roles)).where(User.id == user_id)
-        user = (await current_transaction.exec(statement)).unique().one()
+        user = (await current_transaction.execute(statement)).unique().one()[0]
         assert user.username == 'testuser'
         assert user.name == 'Test'
         assert user.surname == 'User'
@@ -74,7 +73,7 @@ async def test_register(app, test_client, current_transaction):
 
         # reload the user
         statement = select(User).where(User.id == user_id)
-        user = (await current_transaction.exec(statement)).unique().one()
+        user = (await current_transaction.execute(statement)).unique().one()[0]
         assert user.active
 
         # check we can't activate the user again
@@ -101,9 +100,9 @@ async def test_register_validation_error(app, test_client, current_transaction):
 
     # check the database
     count_query = select(func.count()).select_from(User)
-    user_count = (await current_transaction.exec(count_query)).first()
+    user_count = (await current_transaction.execute(count_query)).first()
 
-    assert user_count == 0
+    assert user_count[0] == 0
 
     # check the response
     assert response.status_code == 422

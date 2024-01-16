@@ -1,8 +1,7 @@
 from pydantic import AnyHttpUrl, Field, BaseModel
 from typing import Optional, Generic, Type, TypeVar, List
-from sqlalchemy import Select
-from sqlmodel import distinct, select, func
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import Select, distinct, func, select
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from app.middlewares import request_object
 
 

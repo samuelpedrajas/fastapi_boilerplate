@@ -1,8 +1,7 @@
 import os
 import pytest
-from sqlalchemy import func, insert
+from sqlalchemy import func, insert, select
 from sqlalchemy.orm import selectinload
-from sqlmodel import select
 from config import settings
 from unittest import mock
 from app.helpers.security import encrypt
@@ -34,18 +33,18 @@ DEFAULT_USER = [
 @pytest.fixture(scope="function")
 async def setup_db(async_engine, current_transaction):
     stmt = insert(User).values(DEFAULT_USER).returning(User.id)
-    result = await current_transaction.exec(stmt)
+    result = await current_transaction.execute(stmt)
     user_id = result.fetchall()[0][0]
     DEFAULT_USER[0]['id'] = user_id
 
     stmt = select(Role.id).where(Role.name == 'admin')
-    result = await current_transaction.exec(stmt)
-    role_id = result.fetchall()[0]
+    result = await current_transaction.execute(stmt)
+    role_id = result.fetchall()[0][0]
 
     stmt = insert(UserRole).values(
         {'user_id': user_id, 'role_id': role_id}
     )
-    await current_transaction.exec(stmt)
+    await current_transaction.execute(stmt)
 
     yield
 
@@ -53,12 +52,12 @@ async def setup_db(async_engine, current_transaction):
 @pytest.mark.asyncio
 async def test_get_user(app, test_client, current_transaction, setup_db):
     user = (
-        await current_transaction.exec(
+        await current_transaction.execute(
             select(User)
                 .options(selectinload(User.roles))
                 .where(User.id == DEFAULT_USER[0]['id'])
         )
-    ).unique().one()
+    ).unique().one()[0]
     token = get_access_token(user)
     response = await test_client.get(
         app.url_path_for('user.get_user', user_id=user.id),
@@ -87,12 +86,12 @@ async def test_get_user(app, test_client, current_transaction, setup_db):
 @pytest.mark.asyncio
 async def test_put_user(app, test_client, current_transaction, setup_db):
     user = (
-        await current_transaction.exec(
+        await current_transaction.execute(
             select(User)
                 .options(selectinload(User.roles))
                 .where(User.id == DEFAULT_USER[0]['id'])
         )
-    ).unique().one()
+    ).unique().one()[0]
     token = get_access_token(user)
     data = {
         'name': 'Test2',
@@ -128,9 +127,69 @@ async def test_put_user(app, test_client, current_transaction, setup_db):
 
     # Check the database
     statement = select(User).where(User.id == user.id)
-    user = (await current_transaction.exec(statement)).unique().one()
+    user = (await current_transaction.execute(statement)).unique().one()[0]
 
     assert user.name == data['name']
     assert user.surname == data['surname']
     assert user.email == data['email']
     assert user.country_id == data['country_id']
+
+
+@pytest.mark.asyncio
+async def test_post_user(app, test_client, current_transaction, setup_db):
+    user = (
+        await current_transaction.execute(
+            select(User)
+                .options(selectinload(User.roles))
+                .where(User.id == DEFAULT_USER[0]['id'])
+        )
+    ).unique().one()[0]
+    token = get_access_token(user)
+    data = {
+        'username': 'test2',
+        'password': 'testpassword',
+        'password_confirmation': 'testpassword',
+        'name': 'Test2',
+        'surname': 'User2',
+        'email': 'test2@test.com',
+        'country_id': 2,
+        'role_ids': [1, 2]
+    }
+
+    response = await test_client.post(
+        app.url_path_for('user.post_user'),
+        headers={'Authorization': f'Bearer {token}'},
+        data=data
+    )
+
+    # check the response
+    assert response.status_code == 200
+
+    json_response = response.json()
+    user_id = json_response.get('result', {}).get('id')
+
+    expected_result = {
+        'id': user_id,
+        'username': data['username'],
+        'name': data['name'],
+        'surname': data['surname'],
+        'email': data['email'],
+        'country': {
+            'id': 2,
+            'name': DEFAULT_COUNTRIES[1]['name'],
+            'code': DEFAULT_COUNTRIES[1]['code']
+        },
+    }
+
+    assert json_response == {'status': 200, 'message': None, 'result': expected_result}
+
+    # Check the database
+    statement = select(User).options(selectinload(User.roles)).where(User.id == user_id)
+    user = (await current_transaction.execute(statement)).unique().one()[0]
+
+    assert user.username == data['username']
+    assert user.name == data['name']
+    assert user.surname == data['surname']
+    assert user.email == data['email']
+    assert user.country_id == data['country_id']
+    assert len(user.roles) == 2

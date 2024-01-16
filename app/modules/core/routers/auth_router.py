@@ -108,7 +108,7 @@ async def login(
 
 @router.get(
     "/auth/me",
-    response_model=StandardResponse[User],
+    response_model=StandardResponse[UserResponse],
     tags=["Auth"]
 )
 async def me(

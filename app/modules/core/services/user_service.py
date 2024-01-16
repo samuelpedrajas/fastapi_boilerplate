@@ -3,7 +3,7 @@ from typing import Any, List
 from datetime import datetime, timedelta
 from fastapi import Depends
 from sqlalchemy import Select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from app.common.base_service import BaseService
 from app.modules.core.models.user import User
@@ -37,7 +37,7 @@ class UserService(BaseService):
             if user_data.photo:
                 filepath = await save_file(user_data.photo, settings.UPLOADS_DIR)
 
-            transaction = self.repository.db.begin_nested()
+            transaction = await self.repository.db.begin_nested()
             new_user = User(
                 username=user_data.username,
                 password_hash=get_password_hash(user_data.password),
@@ -49,17 +49,24 @@ class UserService(BaseService):
                 active=active
             )
 
-            if user_data.role_id is not None:
-                role = await self.role_service.get_first_by_field('id', user_data.role_id)
-                new_user.roles.append(role)
+            new_user = await self.repository.create(new_user)
+            await self.repository.flush()
+
+            # add roles
+            await self.repository.ensure_relationships_loaded(new_user, ["roles"])
+            if user_data.role_ids:
+                for role_id in user_data.role_ids:
+                    role = await self.role_service.get_first_by_field('id', role_id)
+                    new_user.roles.append(role)
             else:
                 # Assign default role
                 role = await self.role_service.get_first_by_field('name', 'user')
                 new_user.roles.append(role)
 
-            return await self.repository.create(new_user)
+            await self.repository.commit()
+            return await self.repository.refresh(new_user)
         except Exception as e:
-            transaction.rollback()
+            await transaction.rollback()
             try:
                 if filepath is not None:
                     await aiofiles.os.remove(filepath)
@@ -83,7 +90,15 @@ class UserService(BaseService):
         else:
             user.photo_path = None
 
-        return await self.repository.update(user)
+        await self.repository.commit()
+        return await self.repository.refresh(user)
+
+    async def activate_user(self, user: User) -> User:
+        if not user.active:
+            user.active = True
+            await self.repository.commit()
+            return True
+        return False
 
     async def user_already_exists(self, user_data: UserCreate, clean_up_non_active: bool = False) -> bool:
         username_exists = await self.user_data_already_exists("username", user_data.username, clean_up_non_active)
@@ -99,6 +114,7 @@ class UserService(BaseService):
         timeout_duration = timedelta(seconds=settings.ACCOUNT_ACTIVATION_TIMEOUT)
         account_creation_limit = datetime.utcnow() - timeout_duration
         for user in users:
+            user = user[0]
             if user.active:
                 return True
 
@@ -114,8 +130,8 @@ class UserService(BaseService):
 
     async def get_user_response_from_user(self, user: User) -> UserResponse:
         await self.repository.ensure_relationships_loaded(user, ["country"])
-        user_data = user.model_dump()
-        user_data["country"] = user.country.model_dump()
+        user_data = user.__dict__.copy()
+        user_data["country"] = user.country.__dict__.copy()
         return UserResponse.model_validate(user_data)
 
 
@@ -153,14 +169,15 @@ class UserService(BaseService):
                 )
             )
 
-        if user_data.role_id is not None and await self.role_service.get_first_by_field('id', user_data.role_id) is None:
-            validation_errors.append(
-                ValidationErrorSchema(
-                    loc=("body", "role_id",),
-                    msg="Invalid role",
-                    type="db_error.not_found",
+        for role_id in user_data.role_ids:
+            if await self.role_service.get_first_by_field('id', role_id) is None:
+                validation_errors.append(
+                    ValidationErrorSchema(
+                        loc=("body", "role_id",),
+                        msg="Invalid role",
+                        type="db_error.not_found",
+                    )
                 )
-            )
 
         return validation_errors
 

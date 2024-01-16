@@ -587,18 +587,6 @@ pymysql = ["pymysql"]
 sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
-name = "sqlmodel"
-version = "0.0.14"
-description = "SQLModel, SQL databases in Python, designed for simplicity, compatibility, and robustness."
-category = "main"
-optional = false
-python-versions = ">=3.7,<4.0"
-
-[package.dependencies]
-pydantic = ">=1.10.13,<3.0.0"
-SQLAlchemy = ">=2.0.0,<2.1.0"
-
-[[package]]
 name = "starlette"
 version = "0.27.0"
 description = "The little ASGI library that shines."
@@ -647,7 +635,7 @@ standard = ["colorama (>=0.4)", "httptools (>=0.5.0)", "python-dotenv (>=0.13)",
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "90531ad92e9649087095575dfa7c898a3fdd3d4cf17f89da8449f6d5c81260de"
+content-hash = "151bec5d132b8961771676fffcb38b2f72ae5d3358cc46e7c037d4ffed6a418f"
 
 [metadata.files]
 aiofiles = []
@@ -696,7 +684,6 @@ rsa = []
 six = []
 sniffio = []
 sqlalchemy = []
-sqlmodel = []
 starlette = []
 tomli = []
 typing-extensions = []

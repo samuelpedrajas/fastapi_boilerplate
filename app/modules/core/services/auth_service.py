@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
 from jose import JWTError, jwt
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from app.modules.core.models.user import User
 from app.modules.core.schemas.user_schemas import UserCreate
 from app.modules.core.services.user_service import UserService, get_user_service
@@ -46,11 +46,9 @@ class AuthService:
     async def confirm(self, token: str) -> bool:
         user_id = int(decrypt(token))
         user = await self.user_service.get_first_by_field('id', user_id)
-        if user and not user.active:
-            user.active = True
-            user = await self.user_service.update(user)
-            return True
-        return False
+        if not user:
+            return False
+        return await self.user_service.activate_user(user)
 
     async def authenticate_user(self, username: str, password: str):
         user = await self.user_service.get_first_by_field('username', username, relationships_to_load=['roles', 'roles.permissions'])

@@ -4,15 +4,14 @@ from typing import AsyncIterator
 import pytest
 from unittest.mock import AsyncMock
 from httpx import AsyncClient
-from sqlalchemy import NullPool
-from sqlmodel import SQLModel, insert
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import NullPool, insert
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 from config import settings
 from app.modules.core.models.user import Country, Role, Permission, RolePermission, User
 from app.modules.core.models.email_template import EmailTemplate, EmailTemplateEmailVariable, EmailVariable
-from app.common.db import get_db
+from app.common.db import get_db, Base
 from app import create_app
 from app.modules.core.services.auth_service import AuthService
 
@@ -81,7 +80,7 @@ async def async_engine():
 @pytest.fixture(scope="session", autouse=True)
 async def setup_db(async_engine):
     async with async_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all)
         await conn.execute(insert(Country), DEFAULT_COUNTRIES)
         await conn.execute(insert(Role), DEFAULT_ROLES)
         await conn.execute(insert(Permission), DEFAULT_PERMISSIONS)
@@ -93,7 +92,7 @@ async def setup_db(async_engine):
     yield
 
     async with async_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture(scope="session", autouse=True)

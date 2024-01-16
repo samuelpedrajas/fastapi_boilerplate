@@ -1,12 +1,14 @@
 import csv
 from datetime import datetime
-from sqlalchemy import MetaData, Table
+from sqlalchemy import Table
 from sqlalchemy.sql import insert
+from env import metadata
+
 
 def get_table(connection, table_name):
-    metadata = MetaData()
     table = Table(table_name, metadata, autoload_with=connection)
     return table
+
 
 def insert_data_with_alembic(connection, batch_data, table_name=None, table=None):
     if table_name is None and table is None:
@@ -27,6 +29,7 @@ def insert_data_with_alembic(connection, batch_data, table_name=None, table=None
     stmt = stmt.returning(table.c.id)
     result = connection.execute(stmt)
     return [row[0] for row in result.fetchall()]
+
 
 def import_from_csv(connection, table_name, csv_file_path, delimiter=',', batch_size=1000):
     table = get_table(connection, table_name)
