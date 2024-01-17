@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from app.modules.core.models.user import User
 from app.modules.core.schemas.user_schemas import UserCreate
@@ -18,6 +18,11 @@ bearer_scheme = HTTPBearer(auto_error=False)
 class UnauthorizedException(HTTPException):
     def __init__(self):
         super().__init__(401, "Unauthorized")
+
+
+class ExpiredTokenException(HTTPException):
+    def __init__(self):
+        super().__init__(401, "Token has expired")
 
 
 class AuthService:
@@ -102,8 +107,12 @@ class AuthService:
             user_id: int = int(payload.get("sub"))
             if user_id is None:
                 raise UnauthorizedException()
-        except JWTError:
+
+        except ExpiredSignatureError as e:
+            raise ExpiredTokenException()
+        except JWTError as e:
             raise UnauthorizedException()
+
         user = await self.user_service.get_first_by_field('id', user_id, relationships_to_load=['roles', 'roles.permissions'])
         if user is None:
             raise UnauthorizedException()
