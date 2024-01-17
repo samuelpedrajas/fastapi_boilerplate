@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from db import metadata, engine, sqlalchemy_database_url
+from db.db import metadata, engine, sqlalchemy_database_url
 
 
 # this is the Alembic Config object, which provides

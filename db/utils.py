@@ -2,7 +2,7 @@ import csv
 from datetime import datetime
 from sqlalchemy import Table
 from sqlalchemy.sql import insert
-from db import metadata
+from db.db import metadata
 
 
 def get_table(connection, table_name):
