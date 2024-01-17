@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Request, UploadFile, Form, File
 from fastapi.exceptions import ValidationException
 from fastapi.templating import Jinja2Templates
 from app.modules.core.models.user import User
-from app.modules.core.schemas.auth_schemas import Token, LoginForm
+from app.modules.core.schemas.auth_schemas import Token, LoginForm, RequestPasswordResetForm, ResetPasswordForm
 from app.modules.core.schemas.user_schemas import UserCreate, UserResponse
 from app.modules.core.services.user_service import UserService, get_user_service
 from app.modules.core.services.auth_service import AuthService, get_auth_service, has_permission
@@ -61,34 +61,6 @@ async def register(
         raise e
 
 
-templates = Jinja2Templates(directory="app/modules/core/templates")
-
-
-@router.get(
-    "/auth/confirm/",
-    include_in_schema=False,
-    name="auth.confirm",
-    tags=["Auth"]
-)
-async def confirm(
-    token: str,
-    request: Request,
-    auth_service: AuthService = Depends(get_auth_service),
-):
-    if not token:
-        return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "No token provided."}, status_code=400)
-
-    try:
-        if await auth_service.confirm(token):
-            return templates.TemplateResponse("confirmation_success.html", {"request": request})
-
-        return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "The token is invalid or has expired."}, status_code=400)
-
-    except Exception as e:
-        logging.error(e)
-        return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "An error occurred during confirmation."}, status_code=500)
-
-
 @router.post(
     "/auth/login",
     response_model=StandardResponse[Token],
@@ -117,3 +89,119 @@ async def me(
 ):
     response_user = await user_service.get_user_response_from_user(current_user)
     return standard_response(200, None, response_user)
+
+
+@router.post(
+    "/auth/request_password_reset",
+    response_model=StandardResponse,
+    tags=["Auth"]
+)
+async def request_password_reset(
+    request: Request,
+    form_data: RequestPasswordResetForm,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    reset_password_url = str(request.url_for("auth.reset_password"))
+    success = await auth_service.send_password_reset_email(
+        form_data.email,
+        reset_password_url
+    )
+    if not success:
+        return standard_response(404, "User not found", None)
+
+    return standard_response(
+        200,
+        "An e-mail has been sent to your e-mail address with instructions "
+        "on how to reset your password.",
+        None
+    )
+
+
+@router.post(
+    "/auth/reset_password",
+    response_model=StandardResponse,
+    name="auth.reset_password",
+    tags=["Auth"]
+)
+async def reset_password(
+    reset_password_form: ResetPasswordForm,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    user = await auth_service.get_user_from_token(reset_password_form.token)
+    if not user:
+        return standard_response(404, "User not found", None)
+
+    try:
+        await auth_service.user_service.update_user_password(user, reset_password_form.password)
+        return standard_response(200, "Password reset successful", None)
+    except Exception as e:
+        raise e
+
+
+## Web routes
+web_router = APIRouter()
+
+
+templates = Jinja2Templates(directory="app/modules/core/templates")
+
+
+@web_router.get(
+    "/auth/confirm/",
+    include_in_schema=False,
+    name="auth.confirm",
+    tags=["Auth"]
+)
+async def confirm(
+    token: str,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    if not token:
+        return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "No token provided."}, status_code=400)
+
+    try:
+        if await auth_service.confirm(token):
+            return templates.TemplateResponse("confirmation_success.html", {"request": request})
+
+        return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "The token is invalid or has expired."}, status_code=400)
+
+    except Exception as e:
+        logging.error(e)
+        return templates.TemplateResponse("confirmation_error.html", {"request": request, "message": "An error occurred during confirmation."}, status_code=500)
+
+
+@web_router.get(
+    "/auth/reset_password",
+    name="auth.reset_password_form",
+    tags=["Auth"]
+)
+async def reset_password(
+    token: str,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+    include_in_schema=False,
+    name="auth.reset_password",
+    tags=["Auth"]
+):
+    if not token:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "message": "No token provided."}, status_code=400)
+
+    try:
+        user = await auth_service.get_user_from_token(token)
+        if not user:
+            return templates.TemplateResponse("reset_password.html", {"request": request, "message": "The token is invalid."}, status_code=400)
+
+        reset_password_url = str(request.url_for("auth.reset_password"))
+        return templates.TemplateResponse(
+            "reset_password.html",
+            {
+                "request": request,
+                "reset_password_url": reset_password_url,
+                "token": token
+            },
+            status_code=400
+        )
+
+    except Exception as e:
+        logging.error(e)
+        return templates.TemplateResponse("reset_password.html", {"request": request, "message": "An error occurred while resetting your password."}, status_code=500)

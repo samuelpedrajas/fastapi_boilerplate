@@ -5,7 +5,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError, HTTPException
 from fastapi import FastAPI
 from dotenv import load_dotenv
-from app.modules.core.routers.auth_router import router as auth_router
+from app.modules.core.routers.auth_router import router as auth_router, web_router as web_auth_router
 from app.modules.core.routers.user_router import router as user_router
 from app.error_handlers import validation_exception_handler, http_exception_handler, starlette_http_exception_handler
 from app.schemas import ValidationErrorSchema
@@ -34,8 +34,9 @@ def create_app():
     )
 
     # include routers
-    app.include_router(auth_router, prefix='/v1')
-    app.include_router(user_router, prefix='/v1')
+    app.include_router(auth_router, prefix='/api/v1')
+    app.include_router(web_auth_router, prefix='/web')
+    app.include_router(user_router, prefix='/api/v1')
 
     # configure logging
     log_file = os.getenv('LOG_FILE', settings.LOG_FILE)

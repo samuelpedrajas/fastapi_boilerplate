@@ -74,6 +74,10 @@ class UserService(BaseService):
                 pass
             raise e
 
+    async def update_user_password(self, user: User, password: str) -> User:
+        user.password_hash = get_password_hash(password)
+        await self.repository.commit()
+
     async def update_user(self, user: User, user_data: UserUpdate) -> User:
         user.name = user_data.name
         user.surname = user_data.surname

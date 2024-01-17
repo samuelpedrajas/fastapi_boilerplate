@@ -43,9 +43,13 @@ class AuthService:
 
         return user
 
-    async def confirm(self, token: str) -> bool:
+    async def get_user_from_token(self, token: str) -> User:
         user_id = int(decrypt(token))
         user = await self.user_service.get_first_by_field('id', user_id)
+        return user
+
+    async def confirm(self, token: str) -> bool:
+        user = await self.get_user_from_token(token)
         if not user:
             return False
         return await self.user_service.activate_user(user)
@@ -55,6 +59,25 @@ class AuthService:
         if not user or not verify_password(password, user.password_hash) or not user.active:
             return None
         return user
+
+    async def send_password_reset_email(self, email: str, password_reset_url: str):
+        user = await self.user_service.get_first_by_field('email', email)
+        if not user:
+            return False
+
+        email_template = await self.email_template_service.get_first_by_field("name", "password_reset")
+        if email_template:
+            context = {
+                "name": user.name,
+                "surname": user.surname,
+                "password_reset_url": password_reset_url + "?token=" + encrypt(user.id)
+            }
+            email_content = self.email_template_service.render(context, email_template)
+            await self.email_service.send_email(user.email, email_template.subject, email_content)
+        else:
+            return False
+
+        return True
 
     @classmethod
     def create_access_token(cls, user: User) -> str:

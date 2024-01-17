@@ -6,8 +6,6 @@ Create Date: 2023-11-22 13:20:33.831363
 
 """
 from alembic import op
-from app.helpers.security import get_password_hash
-from db.utils import import_from_csv, insert_data_with_alembic
 
 
 # revision identifiers, used by Alembic.
@@ -18,6 +16,9 @@ depends_on = None
 
 
 def upgrade():
+    from app.helpers.security import get_password_hash
+    from db.utils import import_from_csv, insert_data_with_alembic
+
     connection = op.get_bind()
 
     import_from_csv(connection, 'countries', 'db/data/countries.csv')

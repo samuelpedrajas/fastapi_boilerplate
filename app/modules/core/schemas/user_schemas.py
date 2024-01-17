@@ -1,34 +1,18 @@
 from typing import Dict, List, Optional, Tuple
 from pydantic import EmailStr, constr, field_validator, BaseModel as BaseSchema
-from pydantic_core import PydanticCustomError
 from fastapi import UploadFile, File
-from app.helpers.uploads import validate_file_size
 from app.modules.core.schemas.country_schemas import CountryResponse
 from app.common.filtering import BaseFiltering, FilterConfig, enhanced_ilike, equals
 from app.modules.core.models.user import User
+from app.modules.core.schemas.validators import check_passwords_match, validate_photo, validate_photo_size
 
 
 class UserBase(BaseSchema):
     photo: Optional[UploadFile] = File(None)
 
-    @field_validator('photo')
-    def validate_photo(cls, v):
-        if v and v.content_type not in ["image/jpeg", "image/png"]:
-            raise PydanticCustomError(
-                'invalid_photo_format',
-                'Invalid photo format. Only JPEG or PNG images are allowed.',
-            )
-        return v
+    _validate_photo = field_validator('photo')(validate_photo)
 
-    @field_validator('photo')
-    def validate_photo_size(cls, v):
-        max_size = 1024 * 1024 * 20  # 20MB
-        if v and not validate_file_size(v.file, max_size):
-            raise PydanticCustomError(
-                'photo_too_large',
-                'Photo must be less than {max_size} bytes.',
-            )
-        return v
+    _validate_photo_size = field_validator('photo')(validate_photo_size)
 
 
 class UserCreate(UserBase):
@@ -41,14 +25,7 @@ class UserCreate(UserBase):
     country_id: int
     role_ids: Optional[List[int]] = []
 
-    @field_validator('password_confirmation')
-    def check_passwords_match(cls, v, values, **kwargs):
-        if 'password' in values.data and v != values.data['password']:
-            raise PydanticCustomError(
-                'password_mismatch',
-                'Password and password_confirmation do not match.'
-            )
-        return v
+    _password_confirmation = field_validator('password_confirmation')(check_passwords_match)
 
 
 class UserUpdate(UserBase):

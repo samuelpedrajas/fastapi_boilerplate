@@ -27,9 +27,9 @@ def upgrade():
             'html_body': '<p>Hi @@name@@,</p><p>Click <a href="@@confirmation_url@@">here</a> to confirm your email address.</p>',
         },
         {
-            'name': 'reset_password',
+            'name': 'password_reset',
             'subject': 'Reset your password',
-            'html_body': '<p>Hi @@name@@,</p><p>Click <a href="@@reset_password_url@@">here</a> to reset your password.</p>',
+            'html_body': '<p>Hi @@name@@,</p><p>Click <a href="@@password_reset_url@@">here</a> to reset your password.</p>',
         }
     ]
     templates = insert_data_with_alembic(connection, email_templates, 'email_templates')
@@ -39,7 +39,7 @@ def upgrade():
         {'variable': 'name', 'description': 'The name of the user'},
         {'variable': 'surname', 'description': 'The surname of the user'},
         {'variable': 'confirmation_url', 'description': 'The URL to confirm the user email address'},
-        {'variable': 'reset_password_url', 'description': 'The URL to reset the user password'},
+        {'variable': 'password_reset_url', 'description': 'The URL to reset the user password'},
     ]
     variables = insert_data_with_alembic(connection, email_variables, 'email_variables')
 
@@ -54,5 +54,6 @@ def upgrade():
 
 
 def downgrade():
+    op.execute('DELETE FROM email_templates_email_variables')
     op.execute('DELETE FROM email_templates')
     op.execute('DELETE FROM email_variables')
