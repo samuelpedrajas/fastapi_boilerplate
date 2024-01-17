@@ -95,7 +95,7 @@ async def confirm(
     tags=["Auth"]
 )
 async def login(
-    form_data: LoginForm = Depends(),
+    form_data: LoginForm,
     auth_service: AuthService = Depends(get_auth_service)
 ):
     user = await auth_service.authenticate_user(form_data.username, form_data.password)

@@ -23,6 +23,8 @@ class CommonSettings(BaseSettings):
     MAIL_USE_SSL: bool
     MAIL_FROM_EMAIL: str
 
+    CORS_ORIGINS: str
+
 class DevelopmentConfig(CommonSettings):
     DEBUG: bool = True
     LOG_FILE: str = "storage/logs/development.log"
