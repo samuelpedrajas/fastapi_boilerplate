@@ -31,7 +31,6 @@ class UserCreate(UserBase):
 class UserUpdate(UserBase):
     name: constr(min_length=2, max_length=50)
     surname: constr(min_length=2, max_length=50)
-    email: EmailStr
     country_id: int
 
 
@@ -42,6 +41,7 @@ class UserResponse(BaseSchema):
     surname: constr(min_length=2, max_length=50)
     email: EmailStr
     country: Optional[CountryResponse] = None
+    photo_url: Optional[str] = None
 
 
 class UserFilters(BaseFiltering):

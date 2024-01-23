@@ -11,6 +11,8 @@ class CommonSettings(BaseSettings):
     FASTAPI_RUN_PORT: int
     FASTAPI_ENV: str
 
+    POSTGRES_HOST: str
+    POSTGRES_PORT: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
@@ -24,6 +26,14 @@ class CommonSettings(BaseSettings):
     MAIL_FROM_EMAIL: str
 
     CORS_ORIGINS: str
+    REDIS_HOST: str
+
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_ENDPOINT_URL: str
+    AWS_BUCKET_NAME: str
+    AWS_REGION: str
+
 
 class DevelopmentConfig(CommonSettings):
     DEBUG: bool = True
@@ -32,7 +42,7 @@ class DevelopmentConfig(CommonSettings):
 
     @property
     def sqlalchemy_database_url(self) -> str:
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@db/{self.POSTGRES_DB}"
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 
 class ProductionConfig(CommonSettings):
@@ -42,7 +52,7 @@ class ProductionConfig(CommonSettings):
 
     @property
     def sqlalchemy_database_url(self) -> str:
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@db/{self.POSTGRES_DB}"
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 
 class TestingConfig(CommonSettings):
@@ -51,13 +61,15 @@ class TestingConfig(CommonSettings):
     LOG_FILE: str = "tests/storage/logs/testing.log"
     UPLOADS_DIR: str = "tests/storage/uploads"
 
+    POSTGRES_TEST_HOST: str
+    POSTGRES_TEST_PORT: str
     POSTGRES_TEST_USER: str
     POSTGRES_TEST_PASSWORD: str
     POSTGRES_TEST_DB: str
 
     @property
     def sqlalchemy_test_database_url(self) -> str:
-        return f"postgresql+asyncpg://{self.POSTGRES_TEST_USER}:{self.POSTGRES_TEST_PASSWORD}@test_db/{self.POSTGRES_TEST_DB}"
+        return f"postgresql+asyncpg://{self.POSTGRES_TEST_USER}:{self.POSTGRES_TEST_PASSWORD}@{self.POSTGRES_TEST_HOST}:{self.POSTGRES_TEST_PORT}/{self.POSTGRES_TEST_DB}"
 
 
 def get_settings(env) -> BaseSettings:

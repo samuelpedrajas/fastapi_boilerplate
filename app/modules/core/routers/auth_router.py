@@ -1,4 +1,5 @@
 import logging
+from typing import List, Union
 from fastapi import APIRouter, Depends, Request, UploadFile, Form, File
 from fastapi.exceptions import ValidationException
 from fastapi.templating import Jinja2Templates
@@ -9,9 +10,11 @@ from app.modules.core.services.user_service import UserService, get_user_service
 from app.modules.core.services.auth_service import AuthService, get_auth_service, has_permission
 from app.common.response import standard_response, StandardResponse
 from app.schemas import ValidationErrorSchema
-from typing import List, Union
+from app.common.rate_limiting import rate_limit
+
 
 router = APIRouter()
+
 
 # Note: there's no native way to use Pydantic models with Form data
 @router.post(
@@ -20,6 +23,7 @@ router = APIRouter()
     name="auth.register",
     tags=["Auth"]
 )
+@rate_limit(max_requests=6, window=60)
 async def register(
     request: Request,
     username: str = Form(...),
@@ -53,8 +57,7 @@ async def register(
         return standard_response(422, "Validation error", validation_errors)
 
     try:
-        confirmation_url = str(request.url_for("auth.confirm"))
-        user = await auth_service.register(user_data, confirmation_url)
+        user = await auth_service.register(user_data)
         user_response = await auth_service.user_service.get_user_response_from_user(user)
         return standard_response(200, "Registration successful", user_response)
     except Exception as e:
@@ -66,7 +69,9 @@ async def register(
     response_model=StandardResponse[Token],
     tags=["Auth"]
 )
+@rate_limit(max_requests=6, window=60)
 async def login(
+    request: Request,
     form_data: LoginForm,
     auth_service: AuthService = Depends(get_auth_service)
 ):
@@ -84,6 +89,7 @@ async def login(
     tags=["Auth"]
 )
 async def me(
+    request: Request,
     current_user: User = Depends(has_permission("base")),
     user_service: UserService = Depends(get_user_service)
 ):
@@ -101,11 +107,7 @@ async def request_password_reset(
     form_data: RequestPasswordResetForm,
     auth_service: AuthService = Depends(get_auth_service)
 ):
-    reset_password_url = str(request.url_for("auth.reset_password"))
-    success = await auth_service.send_password_reset_email(
-        form_data.email,
-        reset_password_url
-    )
+    success = await auth_service.send_password_reset_email(form_data.email)
     if not success:
         return standard_response(404, "User not found", None)
 
@@ -152,8 +154,8 @@ templates = Jinja2Templates(directory="app/modules/core/templates")
     tags=["Auth"]
 )
 async def confirm(
-    token: str,
     request: Request,
+    token: str,
     auth_service: AuthService = Depends(get_auth_service),
 ):
     if not token:
@@ -173,15 +175,13 @@ async def confirm(
 @web_router.get(
     "/auth/reset_password",
     name="auth.reset_password_form",
+    include_in_schema=False,
     tags=["Auth"]
 )
 async def reset_password(
     token: str,
     request: Request,
-    auth_service: AuthService = Depends(get_auth_service),
-    include_in_schema=False,
-    name="auth.reset_password",
-    tags=["Auth"]
+    auth_service: AuthService = Depends(get_auth_service)
 ):
     if not token:
         return templates.TemplateResponse("reset_password.html", {"request": request, "message": "No token provided."}, status_code=400)

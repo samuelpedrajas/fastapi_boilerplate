@@ -16,7 +16,7 @@ depends_on = None
 
 
 def upgrade():
-    from app.helpers.security import get_password_hash
+    from app.common.security import get_password_hash
     from db.utils import import_from_csv, insert_data_with_alembic
 
     connection = op.get_bind()

@@ -1,7 +1,7 @@
 import aiofiles
 from typing import Any, List
 from datetime import datetime, timedelta
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,9 +11,9 @@ from app.modules.core.schemas.user_schemas import UserBase, UserCreate, UserUpda
 from app.modules.core.repositories.user_repository import UserRepository
 from app.modules.core.services.role_service import RoleService, get_role_service
 from app.modules.core.services.country_service import CountryService, get_country_service
-from app.helpers.security import get_password_hash
+from app.modules.core.services.file_service import FileService, get_file_service
+from app.common.security import get_password_hash
 from app.common.db import get_db
-from app.helpers.uploads import save_file
 from app.schemas import ValidationErrorSchema
 from config import settings
 
@@ -23,19 +23,22 @@ class UserAlreadyExistsException(Exception):
 
 
 class UserService(BaseService):
-    def __init__(self, repository: UserRepository, role_service: RoleService, country_service: CountryService):
+    def __init__(self, request: Request, repository: UserRepository, role_service: RoleService, country_service: CountryService, file_service: FileService):
+        self.request = request
         self.repository = repository
         self.role_service = role_service
         self.country_service = country_service
+        self.file_service = file_service
 
     async def create_user(self, user_data: UserCreate, active: bool = False) -> User:
         if await self.user_already_exists(user_data, clean_up_non_active=True):
             raise UserAlreadyExistsException()
 
-        filepath = None
+        photo_path = None
+        transaction = None
         try:
             if user_data.photo:
-                filepath = await save_file(user_data.photo, settings.UPLOADS_DIR)
+                photo_path = await self.file_service.save_file(user_data.photo, settings.UPLOADS_DIR)
 
             transaction = await self.repository.db.begin_nested()
             new_user = User(
@@ -45,7 +48,7 @@ class UserService(BaseService):
                 surname=user_data.surname,
                 email=user_data.email,
                 country_id=user_data.country_id,
-                photo_path=filepath,
+                photo_path=photo_path,
                 active=active
             )
 
@@ -66,10 +69,11 @@ class UserService(BaseService):
             await self.repository.commit()
             return await self.repository.refresh(new_user)
         except Exception as e:
-            await transaction.rollback()
+            if transaction is not None:
+                await transaction.rollback()
             try:
-                if filepath is not None:
-                    await aiofiles.os.remove(filepath)
+                if photo_path is not None:
+                    await self.file_service.delete_file(photo_path)
             except:
                 pass
             raise e
@@ -81,16 +85,16 @@ class UserService(BaseService):
     async def update_user(self, user: User, user_data: UserUpdate) -> User:
         user.name = user_data.name
         user.surname = user_data.surname
-        user.email = user_data.email
         user.country_id = user_data.country_id
 
-        try:
-            await aiofiles.os.remove(user.photo_path)
-        except:
-            pass
+        if user.photo_path:
+            try:
+                await self.file_service.delete_file(user.photo_path)
+            except:
+                pass
 
         if user_data.photo:
-            user.photo_path = await save_file(user_data.photo, settings.UPLOADS_DIR)
+            user.photo_path = await self.file_service.save_file(user_data.photo, settings.UPLOADS_DIR)
         else:
             user.photo_path = None
 
@@ -136,6 +140,8 @@ class UserService(BaseService):
         await self.repository.ensure_relationships_loaded(user, ["country"])
         user_data = user.__dict__.copy()
         user_data["country"] = user.country.__dict__.copy()
+        if user.photo_path:
+            user_data["photo_url"] = self.file_service.get_url(user.photo_path)
         return UserResponse.model_validate(user_data)
 
 
@@ -150,6 +156,11 @@ class UserService(BaseService):
                 )
             )
 
+        return validation_errors
+
+    async def validate_data_create(self, user_data: UserCreate) -> List[ValidationErrorSchema]:
+        validation_errors = await self.validate_data_base(user_data)
+
         if await self.user_data_already_exists("email", user_data.email):
             validation_errors.append(
                 ValidationErrorSchema(
@@ -158,11 +169,6 @@ class UserService(BaseService):
                     type="db_error.duplicate",
                 )
             )
-
-        return validation_errors
-
-    async def validate_data_create(self, user_data: UserCreate) -> List[ValidationErrorSchema]:
-        validation_errors = await self.validate_data_base(user_data)
 
         if await self.user_data_already_exists("username", user_data.username):
             validation_errors.append(
@@ -198,5 +204,11 @@ class UserService(BaseService):
         return users
 
 
-def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
-    return UserService(UserRepository(db), get_role_service(db), get_country_service(db))
+def get_user_service(request: Request, db: AsyncSession = Depends(get_db)) -> UserService:
+    return UserService(
+        request,
+        UserRepository(db),
+        get_role_service(db),
+        get_country_service(db),
+        get_file_service(request)
+    )

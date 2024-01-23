@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import AsyncIterator
+from unittest import mock
 import pytest
 from unittest.mock import AsyncMock
 from httpx import AsyncClient
@@ -95,23 +96,13 @@ async def setup_db(async_engine):
         await conn.run_sync(Base.metadata.drop_all)
 
 
-@pytest.fixture(scope="session", autouse=True)
-async def clean_up_uploads():
-    yield
-
-    for file in os.listdir(settings.UPLOADS_DIR):
-        file_path = os.path.join(settings.UPLOADS_DIR, file)
-        try:
-            if os.path.isfile(file_path) and not file.startswith('.'):
-                os.unlink(file_path)
-        except Exception as e:
-            logging.error(f"Failed to delete {file_path}: {str(e)}")
-            raise e
-
-
 @pytest.fixture(scope="function")
 async def app():
-    yield create_app()
+    with mock.patch('app.modules.core.services.file_service.FileService.save_file') as mock_save_file:
+        mock_save_file.return_value = 'testobject'
+        with mock.patch('app.modules.core.services.file_service.FileService.delete_file') as mock_delete_file:
+            mock_save_file.mock_delete_file = True
+            yield create_app()
 
 
 @pytest.fixture(scope="function")

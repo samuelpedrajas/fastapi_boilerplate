@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, Query, UploadFile, Form, File
+from fastapi import APIRouter, Depends, Query, Request, UploadFile, Form, File
 from fastapi.exceptions import ValidationException
 from app.modules.core.models.user import User
 from app.modules.core.schemas.user_schemas import UserCreate, UserResponse, UserUpdate, UserFilters
@@ -18,6 +18,7 @@ router = APIRouter()
     tags=["Users"]
 )
 async def get_user(
+    request: Request,
     user_id: int,
     current_user: User = Depends(has_permission("admin")),
     user_service: UserService = Depends(get_user_service)
@@ -34,10 +35,10 @@ async def get_user(
     tags=["Users"]
 )
 async def put_user(
+    request: Request,
     user_id: int,
     name: str = Form(...),
     surname: str = Form(...),
-    email: str = Form(...),
     country_id: int = Form(...),
     photo: UploadFile = File(None),
     current_user: User = Depends(has_permission("admin")),
@@ -48,7 +49,6 @@ async def put_user(
         user_data = UserUpdate(
             name=name,
             surname=surname,
-            email=email,
             country_id=country_id,
             photo=photo
         )
@@ -73,6 +73,7 @@ async def put_user(
     tags=["Users"]
 )
 async def post_user(
+    request: Request,
     username: str = Form(...),
     password: str = Form(...),
     password_confirmation: str = Form(...),
@@ -117,6 +118,7 @@ async def post_user(
     tags=["Users"]
 )
 async def get_users(
+    request: Request,
     page: int = Query(1, ge=1),
     per_page: int = Query(100, ge=0),
     user_filters: UserFilters = Depends(),

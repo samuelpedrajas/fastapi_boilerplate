@@ -1,6 +1,14 @@
+from typing import IO
 from pydantic_core import PydanticCustomError
 
-from app.helpers.uploads import validate_file_size
+
+def validate_file_size(file: IO, file_size: int = 2097152) -> bool:
+    real_file_size = 0
+    for chunk in file:
+        real_file_size += len(chunk)
+        if real_file_size > file_size:
+            return False
+    return True
 
 
 def validate_photo(cls, v):

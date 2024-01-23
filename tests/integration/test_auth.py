@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 from config import settings
 from unittest import mock
-from app.helpers.security import encrypt
+from app.common.security import encrypt, decrypt
 from app.modules.core.models.user import User
 from tests.conftest import app, test_client, current_transaction, DEFAULT_COUNTRIES
 
@@ -44,9 +44,17 @@ async def test_register(app, test_client, current_transaction):
             'id': user_id,
             'name': data['name'],
             'surname': data['surname'],
-            'username': data['username'],
+            'username': data['username']
         }
-        assert response.json() == {'status': 200, 'message': 'Registration successful', 'result': expected_result}
+
+        json_response = response.json()
+        if json_response["result"]["photo_url"]:
+            encrypted_object_name = json_response["result"]["photo_url"].split("/")[-1]
+            object_name = decrypt(encrypted_object_name)
+            assert object_name == "testobject"
+            del json_response["result"]["photo_url"]
+
+        assert json_response == {'status': 200, 'message': 'Registration successful', 'result': expected_result}
 
         # Check the database
         statement = select(User).options(selectinload(User.roles)).where(User.id == user_id)
@@ -56,8 +64,7 @@ async def test_register(app, test_client, current_transaction):
         assert user.surname == 'User'
         assert user.email == 'test@test.com'
         assert user.country_id == 1
-        assert user.photo_path.startswith(settings.UPLOADS_DIR)
-        assert os.path.isfile(user.photo_path)
+        assert user.photo_path == 'testobject'
         assert not user.active
         assert len(user.roles) == 1
         assert user.roles[0].name == 'user'
@@ -67,7 +74,7 @@ async def test_register(app, test_client, current_transaction):
 
         # activate the user
         token = encrypt(user_id)
-        confirmation_url = app.url_path_for('auth.confirm') + f'?token={token}'
+        confirmation_url = str(app.url_path_for('auth.confirm')) + f'?token={token}'
         response = await test_client.get(confirmation_url)
         assert response.status_code == 200
 

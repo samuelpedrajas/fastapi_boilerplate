@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer
 from jose import ExpiredSignatureError, JWTError, jwt
 from sqlalchemy.ext.asyncio.session import AsyncSession
@@ -9,7 +9,7 @@ from app.modules.core.services.user_service import UserService, get_user_service
 from app.modules.core.services.email_template_service import EmailTemplateService, get_email_template_service
 from app.modules.core.services.email_service import EmailService, get_email_service
 from app.common.db import get_db
-from app.helpers.security import encrypt, decrypt, verify_password
+from app.common.security import encrypt, decrypt, verify_password
 from config import settings
 
 
@@ -28,20 +28,22 @@ class ExpiredTokenException(HTTPException):
 class AuthService:
     ALGORITHM = "HS256"
 
-    def __init__(self, user_service: UserService, email_template_service: EmailTemplateService, email_service: EmailService):
+    def __init__(self, request: Request, user_service: UserService, email_template_service: EmailTemplateService, email_service: EmailService):
+        self.request = request
         self.user_service = user_service
         self.email_template_service = email_template_service
         self.email_service = email_service
 
-    async def register(self, user_data: UserCreate, confirmation_url: str) -> User:
+    async def register(self, user_data: UserCreate) -> User:
         user = await self.user_service.create_user(user_data, False)
 
         email_template = await self.email_template_service.get_first_by_field("name", "account_confirmation")
         if email_template:
+            confirm_url = str(self.request.url_for('auth.confirm')) + "?token=" + encrypt(user.id)
             context = {
                 "name": user.name,
                 "surname": user.surname,
-                "confirmation_url": confirmation_url + "?token=" + encrypt(user.id)
+                "confirmation_url": confirm_url
             }
             email_content = self.email_template_service.render(context, email_template)
             await self.email_service.send_email(user.email, email_template.subject, email_content)
@@ -65,17 +67,18 @@ class AuthService:
             return None
         return user
 
-    async def send_password_reset_email(self, email: str, password_reset_url: str):
+    async def send_password_reset_email(self, email: str):
         user = await self.user_service.get_first_by_field('email', email)
         if not user:
             return False
 
         email_template = await self.email_template_service.get_first_by_field("name", "password_reset")
         if email_template:
+            password_reset_url = self.request.url_for('auth.reset_password_form') + "?token=" + encrypt(user.id)
             context = {
                 "name": user.name,
                 "surname": user.surname,
-                "password_reset_url": password_reset_url + "?token=" + encrypt(user.id)
+                "password_reset_url": password_reset_url
             }
             email_content = self.email_template_service.render(context, email_template)
             await self.email_service.send_email(user.email, email_template.subject, email_content)
@@ -119,8 +122,8 @@ class AuthService:
         return user
 
 
-def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
-    return AuthService(get_user_service(db), get_email_template_service(db),
+def get_auth_service(request: Request, db: AsyncSession = Depends(get_db)) -> AuthService:
+    return AuthService(request, get_user_service(request, db), get_email_template_service(db),
                        get_email_service()) 
 
 

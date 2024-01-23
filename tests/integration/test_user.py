@@ -4,9 +4,9 @@ from sqlalchemy import func, insert, select
 from sqlalchemy.orm import selectinload
 from config import settings
 from unittest import mock
-from app.helpers.security import encrypt
+from app.common.security import encrypt
 from app.modules.core.models.user import User, UserRole, Role
-from app.helpers.security import get_password_hash
+from app.common.security import get_password_hash
 from tests.conftest import (
     app,
     test_client,
@@ -79,6 +79,7 @@ async def test_get_user(app, test_client, current_transaction, setup_db):
             'name': DEFAULT_COUNTRIES[0]['name'],
             'code': DEFAULT_COUNTRIES[0]['code']
         },
+        'photo_url': None,
     }
     assert json_response == {'status': 200, 'message': None, 'result': expected_result}
 
@@ -96,7 +97,6 @@ async def test_put_user(app, test_client, current_transaction, setup_db):
     data = {
         'name': 'Test2',
         'surname': 'User2',
-        'email': 'test2@test.com',
         'country_id': 2,
     }
 
@@ -115,12 +115,13 @@ async def test_put_user(app, test_client, current_transaction, setup_db):
         'username': user.username,
         'name': data['name'],
         'surname': data['surname'],
-        'email': data['email'],
+        'email': user.email,
         'country': {
             'id': 2,
             'name': DEFAULT_COUNTRIES[1]['name'],
             'code': DEFAULT_COUNTRIES[1]['code']
         },
+        'photo_url': None,
     }
 
     assert json_response == {'status': 200, 'message': None, 'result': expected_result}
@@ -131,7 +132,6 @@ async def test_put_user(app, test_client, current_transaction, setup_db):
 
     assert user.name == data['name']
     assert user.surname == data['surname']
-    assert user.email == data['email']
     assert user.country_id == data['country_id']
 
 
@@ -179,6 +179,7 @@ async def test_post_user(app, test_client, current_transaction, setup_db):
             'name': DEFAULT_COUNTRIES[1]['name'],
             'code': DEFAULT_COUNTRIES[1]['code']
         },
+        'photo_url': None,
     }
 
     assert json_response == {'status': 200, 'message': None, 'result': expected_result}
