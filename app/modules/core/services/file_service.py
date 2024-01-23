@@ -4,6 +4,7 @@ import os
 from aiobotocore import session as aiobotocore
 import uuid
 from typing import Optional
+from aiohttp import ClientError
 from starlette.responses import StreamingResponse
 from fastapi import Request, UploadFile
 from config import settings
@@ -28,7 +29,7 @@ class FileService:
         session = aiobotocore.get_session()
         async with session.create_client('s3', region_name=settings.AWS_REGION, 
                                          endpoint_url=settings.AWS_ENDPOINT_URL,
-                                         aws_access_key_id=settings.AWS_ACCESS_KEY_ID, 
+                                         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                                          aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY) as client:
             await upload_file.seek(0)
             content = await upload_file.read()
@@ -37,8 +38,18 @@ class FileService:
             try:
                 await client.put_object(Bucket=settings.AWS_BUCKET_NAME, Key=file_path, 
                                         Body=file_stream, ContentType=upload_file.content_type)
-            except Exception as e:
-                print(f"Error uploading file to S3: {e}")
+
+            except client.exceptions.NoSuchBucket as e:
+                try:
+                    await client.create_bucket(Bucket=settings.AWS_BUCKET_NAME)
+                    await upload_file.seek(0)
+                    content = await upload_file.read()
+                    file_stream = BytesIO(content)
+                    await client.put_object(Bucket=settings.AWS_BUCKET_NAME, Key=file_path,
+                                            Body=file_stream, ContentType=upload_file.content_type)
+                except Exception as e:
+                    raise e
+            except ClientError as e:
                 raise e
             finally:
                 file_stream.close()

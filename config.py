@@ -1,9 +1,9 @@
 import os
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
+from dotenv import find_dotenv, load_dotenv
+
 
 class CommonSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
     ACCOUNT_ACTIVATION_TIMEOUT: int = 86400  # 24 hours
     JWT_ACCESS_TOKEN_EXPIRE_DAYS: int = 30
     SERVER_URL: str
@@ -38,7 +38,7 @@ class CommonSettings(BaseSettings):
 class DevelopmentConfig(CommonSettings):
     DEBUG: bool = True
     LOG_FILE: str = "storage/logs/development.log"
-    UPLOADS_DIR: str = "storage/uploads"
+    UPLOADS_DIR: str = "uploads"
 
     @property
     def sqlalchemy_database_url(self) -> str:
@@ -48,7 +48,7 @@ class DevelopmentConfig(CommonSettings):
 class ProductionConfig(CommonSettings):
     DEBUG: bool = False
     LOG_FILE: str = "storage/logs/production.log"
-    UPLOADS_DIR: str = "storage/uploads"
+    UPLOADS_DIR: str = "uploads"
 
     @property
     def sqlalchemy_database_url(self) -> str:
@@ -59,7 +59,7 @@ class TestingConfig(CommonSettings):
     TESTING: bool = True
     DEBUG: bool = True
     LOG_FILE: str = "tests/storage/logs/testing.log"
-    UPLOADS_DIR: str = "tests/storage/uploads"
+    UPLOADS_DIR: str = "tests/uploads"
 
     POSTGRES_TEST_HOST: str
     POSTGRES_TEST_PORT: str
@@ -74,10 +74,12 @@ class TestingConfig(CommonSettings):
 
 def get_settings(env) -> BaseSettings:
     if env == "production":
+        load_dotenv(find_dotenv(".env"), override=True)
         return ProductionConfig()
-    elif env == "testing":
-        return TestingConfig()
-    return DevelopmentConfig()
+    elif env == "development":
+        load_dotenv(find_dotenv(".env"), override=True)
+        return DevelopmentConfig()
+    return TestingConfig()
 
 
 current_env = os.environ.get("FASTAPI_ENV", "testing")
