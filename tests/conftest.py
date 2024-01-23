@@ -1,9 +1,8 @@
 import logging
 import os
 from typing import AsyncIterator
-from unittest import mock
 import pytest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient
 from sqlalchemy import NullPool, insert
 from sqlalchemy.ext.asyncio.session import AsyncSession
@@ -98,12 +97,11 @@ async def setup_db(async_engine):
 
 @pytest.fixture(scope="function")
 async def app():
-    with mock.patch('app.modules.core.services.file_service.FileService.save_file') as mock_save_file:
+    with patch('app.modules.core.services.file_service.FileService.save_file', new_callable=AsyncMock) as mock_save_file, \
+         patch('app.modules.core.services.file_service.FileService.delete_file', new_callable=AsyncMock) as mock_delete_file:
         mock_save_file.return_value = 'testobject'
-        with mock.patch('app.modules.core.services.file_service.FileService.delete_file') as mock_delete_file:
-            mock_save_file.mock_delete_file = True
-            yield create_app()
-
+        mock_delete_file.return_value = True
+        yield create_app()
 
 @pytest.fixture(scope="function")
 async def test_client(app):

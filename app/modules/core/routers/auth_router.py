@@ -5,7 +5,7 @@ from fastapi.exceptions import ValidationException
 from fastapi.templating import Jinja2Templates
 from app.modules.core.models.user import User
 from app.modules.core.schemas.auth_schemas import Token, LoginForm, RequestPasswordResetForm, ResetPasswordForm
-from app.modules.core.schemas.user_schemas import UserCreate, UserResponse
+from app.modules.core.schemas.user_schemas import UserCreate, UserResponse, UserUpdate
 from app.modules.core.services.user_service import UserService, get_user_service
 from app.modules.core.services.auth_service import AuthService, get_auth_service, has_permission
 from app.common.response import standard_response, StandardResponse
@@ -95,6 +95,41 @@ async def me(
 ):
     response_user = await user_service.get_user_response_from_user(current_user)
     return standard_response(200, None, response_user)
+
+
+@router.put(
+    "/auth/me",
+    response_model=StandardResponse[UserResponse],
+    tags=["Auth"]
+)
+async def put_user(
+    request: Request,
+    name: str = Form(...),
+    surname: str = Form(...),
+    country_id: int = Form(...),
+    photo: UploadFile = File(None),
+    current_user: User = Depends(has_permission("base")),
+    user_service: UserService = Depends(get_user_service)
+):
+    user_data = None
+    try:
+        user_data = UserUpdate(
+            name=name,
+            surname=surname,
+            country_id=country_id,
+            photo=photo
+        )
+    except ValidationException as e:
+        return standard_response(422, "Validation error", e.errors())
+
+    validation_errors = await user_service.validate_data_update(user_data)
+
+    if validation_errors:
+        return standard_response(422, "Validation error", validation_errors)
+
+    current_user = await user_service.update_user(current_user, user_data)
+    user_response = await user_service.get_user_response_from_user(current_user)
+    return standard_response(200, None, user_response)
 
 
 @router.post(

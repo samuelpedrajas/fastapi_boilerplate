@@ -9,6 +9,7 @@ router = APIRouter()
 @router.get(
     "/files/{encrypted_object_name}",
     name="file.get_file",
+    include_in_schema=False,
 )
 async def get_file(
     encrypted_object_name: Optional[str],
