@@ -77,9 +77,17 @@ class UserService(BaseService):
         await self.repository.commit()
 
     async def update_user(self, user: User, user_data: UserUpdate) -> User:
+        await self.repository.ensure_relationships_loaded(user, ["roles"])
+
         user.name = user_data.name
         user.surname = user_data.surname
         user.country_id = user_data.country_id
+        current_role_ids = [role.id for role in user.roles]
+        if sorted(user_data.role_ids) != sorted(current_role_ids):
+            user.roles = []
+            for role_id in user_data.role_ids:
+                role = await self.role_service.get_first_by_field('id', role_id)
+                user.roles.append(role)
 
         if user.photo_path:
             try:

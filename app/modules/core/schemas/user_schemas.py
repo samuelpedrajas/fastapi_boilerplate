@@ -9,6 +9,7 @@ from app.modules.core.schemas.schema_validators import check_passwords_match, va
 
 class UserBase(BaseSchema):
     photo: Optional[UploadFile] = File(None)
+    role_ids: List[int]
 
     _validate_photo = field_validator('photo')(validate_photo)
 
@@ -23,7 +24,6 @@ class UserCreate(UserBase):
     surname: constr(min_length=2, max_length=50)
     email: EmailStr
     country_id: int
-    role_ids: List[int]
 
     _password_confirmation = field_validator('password_confirmation')(check_passwords_match)
 

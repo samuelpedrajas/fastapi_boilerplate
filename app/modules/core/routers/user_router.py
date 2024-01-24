@@ -41,6 +41,7 @@ async def put_user(
     surname: str = Form(...),
     country_id: int = Form(...),
     photo: UploadFile = File(None),
+    role_ids: List[int] = Form(...),
     current_user: User = Depends(has_permission("admin")),
     user_service: UserService = Depends(get_user_service)
 ):
@@ -50,7 +51,8 @@ async def put_user(
             name=name,
             surname=surname,
             country_id=country_id,
-            photo=photo
+            photo=photo,
+            role_ids=role_ids
         )
     except ValidationException as e:
         return standard_response(422, "Validation error", e.errors())
@@ -63,7 +65,7 @@ async def put_user(
     user = await user_service.get_first_by_field('id', user_id)
     user = await user_service.update_user(user, user_data)
     user_response = await user_service.get_user_response_from_user(user)
-    return standard_response(200, None, user_response)
+    return standard_response(200, "Updated successfully", user_response)
 
 
 @router.post(

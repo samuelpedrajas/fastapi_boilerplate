@@ -48,6 +48,16 @@ class UserIntegrityValidator:
                 )
             )
 
+        for role_id in user_data.role_ids:
+            if await self.role_service.get_first_by_field('id', role_id) is None:
+                validation_errors.append(
+                    ValidationErrorSchema(
+                        loc=("body", "role_id",),
+                        msg="Invalid role",
+                        type="db_error.not_found",
+                    )
+                )
+
         return validation_errors
 
     async def validate_data_create(self, user_data: UserCreate) -> List[ValidationErrorSchema]:
@@ -70,16 +80,6 @@ class UserIntegrityValidator:
                     type="db_error.duplicate",
                 )
             )
-
-        for role_id in user_data.role_ids:
-            if await self.role_service.get_first_by_field('id', role_id) is None:
-                validation_errors.append(
-                    ValidationErrorSchema(
-                        loc=("body", "role_id",),
-                        msg="Invalid role",
-                        type="db_error.not_found",
-                    )
-                )
 
         return validation_errors
 

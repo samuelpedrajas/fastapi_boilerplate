@@ -121,7 +121,8 @@ async def put_user(
             name=name,
             surname=surname,
             country_id=country_id,
-            photo=photo
+            photo=photo,
+            role_ids=[role.id for role in current_user.roles]
         )
     except ValidationException as e:
         return standard_response(422, "Validation error", e.errors())
