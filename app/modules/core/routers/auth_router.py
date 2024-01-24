@@ -38,6 +38,8 @@ async def register(
 ):
     user_data = None
     try:
+        # reusing UserCreate, but will need to create a new schema
+        # when form data is natively supported with Pydantic
         user_data = UserCreate(
             username=username,
             password=password,
@@ -46,7 +48,8 @@ async def register(
             surname=surname,
             email=email,
             country_id=country_id,
-            photo=photo
+            photo=photo,
+            role_ids=[]
         )
     except ValidationException as e:
         return standard_response(422, "Validation error", e.errors())

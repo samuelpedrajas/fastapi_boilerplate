@@ -116,6 +116,16 @@ class UserService(BaseService):
         users['items'] = [await self.get_user_response_from_user(user) for user in users['items']]
         return users
 
+    async def delete_user(self, user: User) -> bool:
+        if user.photo_path:
+            try:
+                await self.file_service.delete_file(user.photo_path)
+            except:
+                pass
+        await self.repository.delete(user)
+        await self.repository.commit()
+        return True
+
 
 def get_user_service(request: Request, db: AsyncSession = Depends(get_db)) -> UserService:
     user_repository = UserRepository(db)

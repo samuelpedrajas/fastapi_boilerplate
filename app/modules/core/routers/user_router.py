@@ -82,7 +82,7 @@ async def post_user(
     email: str = Form(...),
     country_id: int = Form(...),
     photo: UploadFile = File(None),
-    role_ids: List[int] = Form([]),
+    role_ids: List[int] = Form(...),
     current_user: User = Depends(has_permission("admin")),
     user_service: UserService = Depends(get_user_service)
 ):
@@ -127,3 +127,29 @@ async def get_users(
 ):
     paginated_results = await user_service.get_filtered(user_filters, page, per_page)
     return standard_response(200, None, paginated_results)
+
+
+@router.delete(
+    "/admin/users/{user_id}",
+    response_model=StandardResponse,
+    name="user.delete_user",
+    tags=["Users"]
+)
+async def delete_user(
+    request: Request,
+    user_id: int,
+    current_user: User = Depends(has_permission("admin")),
+    user_service: UserService = Depends(get_user_service)
+):
+    if current_user.id == user_id:
+        return standard_response(400, "You can't delete yourself", None)
+
+    user = await user_service.get_first_by_field('id', user_id)
+    if not user:
+        return standard_response(404, "Not found", None)
+
+    removed = await user_service.delete_user(user)
+    if not removed:
+        return standard_response(500, "Unknown error", None)
+
+    return standard_response(200, "Removed successfully", None)

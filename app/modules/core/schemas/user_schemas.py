@@ -23,7 +23,7 @@ class UserCreate(UserBase):
     surname: constr(min_length=2, max_length=50)
     email: EmailStr
     country_id: int
-    role_ids: Optional[List[int]] = []
+    role_ids: List[int]
 
     _password_confirmation = field_validator('password_confirmation')(check_passwords_match)
 
