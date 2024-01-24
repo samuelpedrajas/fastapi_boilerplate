@@ -46,15 +46,14 @@ class UserRole(BaseModel):
 class User(BaseModel):
     __tablename__ = "users"
 
-    username = Column(String(50))
-    password_hash = Column(String) # The length will depend on the hashing algorithm used
+    username = Column(String(50), unique=True)
+    password_hash = Column(String)
     name = Column(String(50), nullable=True)
     surname = Column(String(50), nullable=True)
-    email = Column(String(255))
+    email = Column(String(255), unique=True)
     country_id = Column(Integer, ForeignKey('countries.id'), nullable=True)
     photo_path = Column(String, nullable=True)
     active = Column(Boolean, default=False)
-    deleted_at = Column(DateTime, nullable=True)
 
     country = relationship("Country", back_populates="users")
     roles = relationship("Role", secondary="users_roles", back_populates="users")

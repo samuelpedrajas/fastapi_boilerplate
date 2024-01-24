@@ -4,7 +4,7 @@ from fastapi import UploadFile, File
 from app.modules.core.schemas.country_schemas import CountryResponse
 from app.common.filtering import BaseFiltering, FilterConfig, enhanced_ilike, equals
 from app.modules.core.models.user import User
-from app.modules.core.schemas.validators import check_passwords_match, validate_photo, validate_photo_size
+from app.modules.core.schemas.schema_validators import check_passwords_match, validate_photo, validate_photo_size
 
 
 class UserBase(BaseSchema):

@@ -80,17 +80,16 @@ def upgrade() -> None:
     )
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('username', sa.sql.sqltypes.String(), nullable=False),
+    sa.Column('username', sa.sql.sqltypes.String(), nullable=False, unique=True),
     sa.Column('password_hash', sa.sql.sqltypes.String(), nullable=False),
     sa.Column('name', sa.sql.sqltypes.String(), nullable=True),
     sa.Column('surname', sa.sql.sqltypes.String(), nullable=True),
-    sa.Column('email', sa.sql.sqltypes.String(), nullable=False),
+    sa.Column('email', sa.sql.sqltypes.String(), nullable=False, unique=True),
     sa.Column('country_id', sa.Integer(), nullable=False),
     sa.Column('photo_path', sa.sql.sqltypes.String(), nullable=True),
     sa.Column('active', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.Column('deleted_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['country_id'], ['countries.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

@@ -1,7 +1,6 @@
 from pydantic import BaseModel, field_validator
-from pydantic_core import PydanticCustomError
 
-from app.modules.core.schemas.validators import check_passwords_match
+from app.modules.core.schemas.schema_validators import check_passwords_match
 
 
 class Token(BaseModel):

@@ -55,7 +55,7 @@ async def put_user(
     except ValidationException as e:
         return standard_response(422, "Validation error", e.errors())
 
-    validation_errors = await user_service.validate_data_update(user_data)
+    validation_errors = await user_service.user_integrity_validator.validate_data_update(user_data)
 
     if validation_errors:
         return standard_response(422, "Validation error", validation_errors)
@@ -102,7 +102,7 @@ async def post_user(
         except Exception as e:
             return standard_response(422, "Validation error", e.errors())
 
-        validation_errors = await user_service.validate_data_create(user_data)
+        validation_errors = await user_service.user_integrity_validator.validate_data_create(user_data)
 
         if validation_errors:
             return standard_response(422, "Validation error", validation_errors)

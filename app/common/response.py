@@ -1,15 +1,6 @@
-from typing import Generic, TypeVar, Optional, Dict
-from pydantic import BaseModel
+from typing import Optional, Dict
 from fastapi.responses import JSONResponse
-
-
-T = TypeVar('T')
-
-
-class StandardResponse(BaseModel, Generic[T]):
-    status: int
-    message: Optional[str] = None
-    result: Optional[T] = None
+from app.schemas import StandardResponse, T
 
 
 def standard_response(
