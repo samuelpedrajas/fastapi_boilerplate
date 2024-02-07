@@ -8,6 +8,7 @@ from app.modules.core.routers.auth_router import router as auth_router, web_rout
 from app.modules.core.routers.user_router import router as user_router
 from app.modules.core.routers.file_router import router as file_router
 from app.modules.core.routers.params_router import router as params_router
+from app.modules.core.routers.root_router import router as root_router
 from app.error_handlers import validation_exception_handler, http_exception_handler, starlette_http_exception_handler
 from app.schemas import ValidationErrorSchema
 from app.common.response import StandardResponse
@@ -33,6 +34,7 @@ def create_app():
     )
 
     # include routers
+    app.include_router(root_router, prefix='')
     app.include_router(auth_router, prefix='/api/v1')
     app.include_router(web_auth_router, prefix='/web')
     app.include_router(user_router, prefix='/api/v1')

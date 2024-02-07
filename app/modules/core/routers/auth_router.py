@@ -1,8 +1,8 @@
 import logging
 from typing import List, Union
 from fastapi import APIRouter, Depends, Request, UploadFile, Form, File
-from fastapi.exceptions import ValidationException
 from fastapi.templating import Jinja2Templates
+from pydantic_core import ValidationError
 from app.modules.core.models.user import User
 from app.modules.core.schemas.auth_schemas import Token, LoginForm, RequestPasswordResetForm, ResetPasswordForm
 from app.modules.core.schemas.user_schemas import UserCreate, UserResponse, UserUpdate
@@ -51,7 +51,7 @@ async def register(
             photo=photo,
             role_ids=[]
         )
-    except ValidationException as e:
+    except ValidationError as e:
         return standard_response(422, "Validation error", e.errors())
 
     user_service = auth_service.user_service
@@ -124,7 +124,7 @@ async def put_user(
             photo=photo,
             role_ids=[role.id for role in current_user.roles]
         )
-    except ValidationException as e:
+    except ValidationError as e:
         return standard_response(422, "Validation error", e.errors())
 
     validation_errors = await user_service.user_integrity_validator.validate_data_update(user_data)
@@ -169,6 +169,7 @@ async def reset_password(
     reset_password_form: ResetPasswordForm,
     auth_service: AuthService = Depends(get_auth_service)
 ):
+    # TODO: expire token
     user = await auth_service.get_user_from_token(reset_password_form.token)
     if not user:
         return standard_response(404, "User not found", None)
@@ -239,7 +240,7 @@ async def reset_password(
                 "reset_password_url": reset_password_url,
                 "token": token
             },
-            status_code=400
+            status_code=200
         )
 
     except Exception as e:

@@ -32,6 +32,6 @@ def check_passwords_match(cls, v, values, **kwargs):
     if 'password' in values.data and v != values.data['password']:
         raise PydanticCustomError(
             'password_mismatch',
-            'Password and password_confirmation do not match.'
+            'Passwords do not match.'
         )
     return v

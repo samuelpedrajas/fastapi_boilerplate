@@ -111,9 +111,10 @@ class UserService(BaseService):
         return False
 
     async def get_user_response_from_user(self, user: User) -> UserResponse:
-        await self.repository.ensure_relationships_loaded(user, ["country"])
+        await self.repository.ensure_relationships_loaded(user, ["country", "roles"])
         user_data = user.__dict__.copy()
         user_data["country"] = await self.country_service.get_country_response_from_country(user.country)
+        user_data["roles"] = [await self.role_service.get_role_response_from_role(role) for role in user.roles]
         if user.photo_path:
             user_data["photo_url"] = self.file_service.get_url(user.photo_path)
         return UserResponse.model_validate(user_data)

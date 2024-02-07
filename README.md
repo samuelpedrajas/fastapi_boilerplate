@@ -14,7 +14,7 @@ FastAPI boilerplate designed to provide a foundational structure for building sc
 - **Rate Limiting**: Custom decorator for request rate limiting (using Redis).
 - **Advanced Filtering**: Flexible query filters, capable of handling complex relationships from simple specifications.
 - **Integrated Testing**: Comprehensive integration tests setup with database session management.
-
+- **CORS Configuration**: Configurable Cross-Origin Resource Sharing (CORS) to specify which external domains can interact with the API.
 
 ## Technology Stack and Services
 

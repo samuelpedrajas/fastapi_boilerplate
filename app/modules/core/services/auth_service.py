@@ -74,7 +74,7 @@ class AuthService:
 
         email_template = await self.email_template_service.get_first_by_field("name", "password_reset")
         if email_template:
-            password_reset_url = self.request.url_for('auth.reset_password_form') + "?token=" + encrypt(user.id)
+            password_reset_url = str(self.request.url_for('auth.reset_password_form')) + "?token=" + encrypt(user.id)
             context = {
                 "name": user.name,
                 "surname": user.surname,

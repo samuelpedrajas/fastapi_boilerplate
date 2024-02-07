@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, Query, Request, UploadFile, Form, File
-from fastapi.exceptions import ValidationException
+from pydantic_core import ValidationError
 from app.modules.core.models.user import User
 from app.modules.core.schemas.user_schemas import UserCreate, UserResponse, UserUpdate, UserFilters
 from app.modules.core.services.user_service import UserService, get_user_service
@@ -41,7 +41,7 @@ async def put_user(
     surname: str = Form(...),
     country_id: int = Form(...),
     photo: UploadFile = File(None),
-    role_ids: List[int] = Form(...),
+    role_ids: str = Form(...),
     current_user: User = Depends(has_permission("admin")),
     user_service: UserService = Depends(get_user_service)
 ):
@@ -52,9 +52,9 @@ async def put_user(
             surname=surname,
             country_id=country_id,
             photo=photo,
-            role_ids=role_ids
+            role_ids=[int(number) for number in role_ids.split(",")]
         )
-    except ValidationException as e:
+    except ValidationError as e:
         return standard_response(422, "Validation error", e.errors())
 
     validation_errors = await user_service.user_integrity_validator.validate_data_update(user_data)
@@ -84,7 +84,7 @@ async def post_user(
     email: str = Form(...),
     country_id: int = Form(...),
     photo: UploadFile = File(None),
-    role_ids: List[int] = Form(...),
+    role_ids: str = Form(...),
     current_user: User = Depends(has_permission("admin")),
     user_service: UserService = Depends(get_user_service)
 ):
@@ -99,7 +99,7 @@ async def post_user(
                 email=email,
                 country_id=country_id,
                 photo=photo,
-                role_ids=role_ids
+                role_ids=[int(number) for number in role_ids.split(",")]
             )
         except Exception as e:
             return standard_response(422, "Validation error", e.errors())

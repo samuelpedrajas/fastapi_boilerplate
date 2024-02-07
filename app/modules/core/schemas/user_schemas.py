@@ -32,6 +32,12 @@ class UserUpdate(UserBase):
     name: constr(min_length=2, max_length=50)
     surname: constr(min_length=2, max_length=50)
     country_id: int
+    role_ids: List[int]
+
+
+class RoleResponse(BaseSchema):
+    id: int
+    name: constr(min_length=2, max_length=50)
 
 
 class UserResponse(BaseSchema):
@@ -41,6 +47,7 @@ class UserResponse(BaseSchema):
     surname: constr(min_length=2, max_length=50)
     email: EmailStr
     country: Optional[CountryResponse] = None
+    roles: List[RoleResponse]
     photo_url: Optional[str] = None
 
 
@@ -61,6 +68,10 @@ class UserFilters(BaseFiltering):
             ),
             'email': FilterConfig(
                 model_fields=['email'],
+                comparison=enhanced_ilike,
+            ),
+            'username': FilterConfig(
+                model_fields=['username'],
                 comparison=enhanced_ilike,
             ),
             'country_id': FilterConfig(
