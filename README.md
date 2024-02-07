@@ -8,7 +8,7 @@ FastAPI boilerplate designed to provide a foundational structure for building sc
 - **User Management**: Provides a set of APIs for user operations, including CRUD functionalities.
 - **File Upload**: Demonstrates file uploading mechanism (using S3 compatible storages like MinIO), exemplified with user photo uploads.
 - **Email Integration**: Email system for account confirmation and password resets, supported by a dynamic email template management.
-- **Role and Permission Management**: Role-based access control system with customizable permissions.
+- **Role and Permission Management**: Implements a granular access control mechanism, where roles assigned to users determine permissions for API access.
 - **Asynchronous IO**: Utilizes FastAPI's asynchronous capabilities for enhanced performance.
 - **Common Response Format**: Uniform API responses for consistency.
 - **Rate Limiting**: Custom decorator for request rate limiting (using Redis).
@@ -60,7 +60,7 @@ docker compose exec web pytest
 ```
 
 ## API Documentation
-The auto-generated OpenAPI documentation is accessible at `http://127.0.0.1:8000/docs` (adjust as necessary based on `.env` settings).
+The auto-generated OpenAPI documentation is accessible at `http://127.0.0.1:8000/docs`.
 
 ## Configuration
 Manage configuration settings via the `.env` file. See `.env.example` for a template.
