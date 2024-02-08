@@ -12,22 +12,18 @@ FastAPI boilerplate designed to provide a foundational structure for building sc
 - **Asynchronous IO**: Utilizes FastAPI's asynchronous capabilities for enhanced performance.
 - **Common Response Format**: Uniform API responses for consistency.
 - **Rate Limiting**: Custom decorator for request rate limiting (using Redis).
-- **Advanced Filtering**: Flexible query filters, capable of handling complex relationships from simple specifications.
+- **Advanced Filtering**: Flexible query filters, capable of handling complex queries from simple specifications.
 - **Integrated Testing**: Comprehensive integration tests setup with database session management.
 - **CORS Configuration**: Configurable Cross-Origin Resource Sharing (CORS) to specify which external domains can interact with the API.
 
 ## Technology Stack and Services
 
-### Framework and Language
-- **FastAPI**: A modern, fast web framework for building APIs.
-- **Python**: The primary programming language.
-
 ### Database and Migrations
-- **PostgreSQL**: The default database for data storage, managed via Docker Compose.
+- **PostgreSQL**: The default database for data storage.
 - **Alembic**: Handles database migrations.
 
 ### Testing
-- **Pytest**: Used for writing and executing integration tests.
+- **Pytest**: Used for writing and executing tests.
 
 ### Containerization
 - **Docker and Docker Compose**: Facilitates containerization of the application and services for consistent environments.
