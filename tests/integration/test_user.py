@@ -67,6 +67,8 @@ async def test_get_user(app, test_client, current_transaction, setup_db):
     # check the response
     assert response.status_code == 200
 
+    role_id = user.roles[0].id
+
     json_response = response.json()
     expected_result = {
         'id': user.id,
@@ -79,6 +81,7 @@ async def test_get_user(app, test_client, current_transaction, setup_db):
             'name': DEFAULT_COUNTRIES[0]['name'],
             'code': DEFAULT_COUNTRIES[0]['code']
         },
+        'roles': [{'id': role_id, 'name': 'admin'}],
         'photo_url': None,
     }
     assert json_response == {'status': 200, 'message': None, 'result': expected_result}
@@ -93,11 +96,13 @@ async def test_put_user(app, test_client, current_transaction, setup_db):
                 .where(User.id == DEFAULT_USER[0]['id'])
         )
     ).unique().one()[0]
+    role_id = user.roles[0].id
     token = get_access_token(user)
     data = {
         'name': 'Test2',
         'surname': 'User2',
         'country_id': 2,
+        'role_ids': str(role_id)
     }
 
     response = await test_client.put(
@@ -121,10 +126,11 @@ async def test_put_user(app, test_client, current_transaction, setup_db):
             'name': DEFAULT_COUNTRIES[1]['name'],
             'code': DEFAULT_COUNTRIES[1]['code']
         },
+        'roles': [{'id': role_id, 'name': 'admin'}],
         'photo_url': None,
     }
 
-    assert json_response == {'status': 200, 'message': None, 'result': expected_result}
+    assert json_response == {'status': 200, 'message': 'Updated successfully', 'result': expected_result}
 
     # Check the database
     statement = select(User).where(User.id == user.id)
@@ -153,7 +159,7 @@ async def test_post_user(app, test_client, current_transaction, setup_db):
         'surname': 'User2',
         'email': 'test2@test.com',
         'country_id': 2,
-        'role_ids': [1, 2]
+        'role_ids': "1,2"
     }
 
     response = await test_client.post(
@@ -179,6 +185,7 @@ async def test_post_user(app, test_client, current_transaction, setup_db):
             'name': DEFAULT_COUNTRIES[1]['name'],
             'code': DEFAULT_COUNTRIES[1]['code']
         },
+        'roles': [{'id': 1, 'name': 'user'}, {'id': 2, 'name': 'admin'}],
         'photo_url': None,
     }
 

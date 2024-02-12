@@ -44,7 +44,8 @@ async def test_register(app, test_client, current_transaction):
             'id': user_id,
             'name': data['name'],
             'surname': data['surname'],
-            'username': data['username']
+            'username': data['username'],
+            'roles': [{'id': 1, 'name': 'user'}],
         }
 
         json_response = response.json()
