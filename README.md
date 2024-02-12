@@ -61,6 +61,20 @@ The auto-generated OpenAPI documentation is accessible at `http://127.0.0.1:8000
 ## Configuration
 Manage configuration settings via the `.env` file. See `.env.example` for a template.
 
+## Enabling Debug Mode with Visual Studio Code
+
+To enable debugging in Visual Studio Code, update the command in the docker-compose.yml under the web service:
+
+**Current Command:**
+```yaml
+command: ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${FASTAPI_RUN_PORT} --reload"]
+```
+
+**Replace With:**
+```yaml
+command: ["sh", "-c", "pip install debugpy -t /tmp && python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 -m uvicorn main:app --host 0.0.0.0 --port ${FASTAPI_RUN_PORT} --reload"]
+```
+
 ## Contributions
 Suggestions and improvements via issues or pull requests are welcome.
 
